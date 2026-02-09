@@ -1,0 +1,28 @@
+export default defineNuxtConfig({
+  devtools: { enabled: true },
+
+  modules: [
+    '@nuxt/ui',
+    '@pinia/nuxt',
+  ],
+
+  css: ['~/assets/css/main.css'],
+
+  runtimeConfig: {
+    public: {
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+    },
+  },
+
+  app: {
+    head: {
+      title: 'ShopperArmy Admin',
+      meta: [
+        { name: 'description', content: 'ShopperArmy Admin Panel' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      ],
+    },
+  },
+
+  compatibilityDate: '2026-02-09',
+})
