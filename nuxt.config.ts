@@ -1,4 +1,5 @@
 export default defineNuxtConfig({
+  srcDir: 'app/',
   devtools: { enabled: true },
 
   modules: [
