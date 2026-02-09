@@ -1,6 +1,6 @@
 export function useApi() {
   const config = useRuntimeConfig()
-  const baseURL = config.public.apiBaseUrl
+  const baseURL = config.public.apiBaseUrl + '/api/v1/admin'
 
   async function apiFetch<T>(path: string, options: any = {}): Promise<T> {
     const token = useCookie('admin_auth_token').value
