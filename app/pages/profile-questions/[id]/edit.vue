@@ -3,10 +3,9 @@ definePageMeta({ layout: 'admin' })
 
 const route = useRoute()
 const id = route.params.id as string
-const { apiFetch } = useApi()
-const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
+
+const { data: question, isPending, isError, error } = useProfileQuestionQuery(id)
+const updateMutation = useUpdateProfileQuestion()
 
 const form = reactive({
   question_key: '',
@@ -17,11 +16,11 @@ const form = reactive({
 })
 
 const options = ref<string[]>([])
+const formReady = ref(false)
 
-onMounted(async () => {
-  try {
-    const res = await apiFetch<any>(`/profile-questions/${id}`)
-    const q = res.data || res
+watch(question, (res) => {
+  if (res && !formReady.value) {
+    const q = (res as any).data || res
     Object.assign(form, {
       question_key: q.question_key || '',
       question_text: q.question_text || '',
@@ -32,12 +31,9 @@ onMounted(async () => {
     if (Array.isArray(q.options)) {
       options.value = [...q.options]
     }
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to load question'
-  } finally {
-    loading.value = false
+    formReady.value = true
   }
-})
+}, { immediate: true })
 
 function addOption() {
   options.value.push('')
@@ -56,21 +52,14 @@ const typeOptions = [
 
 const showOptions = computed(() => ['single_select', 'multi_select'].includes(form.question_type))
 
-async function handleSubmit() {
-  saving.value = true
-  error.value = ''
-  try {
-    const body: any = { ...form }
-    if (showOptions.value && options.value.length > 0) {
-      body.options = options.value.filter(Boolean)
-    }
-    await apiFetch(`/profile-questions/${id}`, { method: 'PUT', body })
-    navigateTo('/profile-questions')
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to update question'
-  } finally {
-    saving.value = false
+function handleSubmit() {
+  const body: any = { ...form }
+  if (showOptions.value && options.value.length > 0) {
+    body.options = options.value.filter(Boolean)
   }
+  updateMutation.mutate({ id, data: body }, {
+    onSuccess: () => navigateTo('/profile-questions'),
+  })
 }
 </script>
 
@@ -80,16 +69,20 @@ async function handleSubmit() {
       <NuxtLink to="/profile-questions">
         <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold">Edit Profile Question</h1>
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Edit Profile Question</h1>
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
+    <div v-if="isPending" class="flex items-center justify-center py-20">
       <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
     </div>
 
-    <template v-else-if="!error || form.question_key">
+    <div v-else-if="isError && !formReady" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+      {{ error?.message || 'Failed to load question' }}
+    </div>
+
+    <template v-else-if="formReady">
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <UFormField label="Question Key" required>
             <UInput v-model="form.question_key" class="w-full font-mono" required />
             <template #help>Unique identifier (snake_case)</template>
@@ -112,9 +105,9 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div v-if="showOptions" class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+        <div v-if="showOptions" class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold">Options</h2>
+            <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Options</h2>
             <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addOption">Add Option</UButton>
           </div>
           <div v-if="!options.length" class="text-sm text-zinc-400">No options</div>
@@ -124,17 +117,17 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+        <div v-if="updateMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+          {{ updateMutation.error.value?.message || 'Failed to update question' }}
+        </div>
 
         <div class="flex gap-3">
-          <UButton type="submit" color="primary" :loading="saving" size="lg">Save Changes</UButton>
+          <UButton type="submit" color="primary" :loading="updateMutation.isPending.value" size="lg">Save Changes</UButton>
           <NuxtLink to="/profile-questions">
             <UButton variant="outline" size="lg">Cancel</UButton>
           </NuxtLink>
         </div>
       </form>
     </template>
-
-    <div v-else class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
   </div>
 </template>

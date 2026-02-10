@@ -1,1 +1,9 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+@import "./themes.css";
+
 /* ShopperArmy Admin Styles */
+
+body {
+  min-height: 100vh;
+}

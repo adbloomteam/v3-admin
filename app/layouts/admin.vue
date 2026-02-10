@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { logout } = useAuth()
+const { isDark, toggleColorMode } = useTheme()
 const route = useRoute()
 const mobileOpen = ref(false)
 
@@ -20,7 +21,7 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-zinc-50 flex">
+  <div class="min-h-screen bg-(--ui-bg-muted) flex">
     <!-- Mobile overlay -->
     <div
       v-if="mobileOpen"
@@ -31,16 +32,16 @@ function isActive(to: string) {
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white border-r border-zinc-200 transition-transform lg:translate-x-0 lg:static lg:z-auto',
+        'fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-(--ui-bg) border-r border-(--ui-border) transition-transform lg:translate-x-0 lg:static lg:z-auto',
         mobileOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
       <div class="p-6 flex items-center justify-between">
         <div>
-          <h1 class="text-lg font-bold text-zinc-900">ShopperArmy</h1>
-          <p class="text-xs text-zinc-400">Admin Panel</p>
+          <h1 class="text-lg font-bold text-(--ui-text)">ShopperArmy</h1>
+          <p class="text-xs text-(--ui-text-muted)">Admin Panel</p>
         </div>
-        <button class="lg:hidden text-zinc-400 hover:text-zinc-600" @click="mobileOpen = false">
+        <button class="lg:hidden text-(--ui-text-muted) hover:text-(--ui-text)" @click="mobileOpen = false">
           <UIcon name="i-lucide-x" class="size-5" />
         </button>
       </div>
@@ -52,8 +53,8 @@ function isActive(to: string) {
           :class="[
             'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
             isActive(item.to)
-              ? 'bg-rose-50 text-rose-700'
-              : 'text-zinc-600 hover:bg-zinc-100'
+              ? 'bg-(--ui-primary)/10 text-(--ui-primary)'
+              : 'text-(--ui-text-dimmed) hover:bg-(--ui-bg-elevated)'
           ]"
           @click="mobileOpen = false"
         >
@@ -61,9 +62,16 @@ function isActive(to: string) {
           {{ item.label }}
         </NuxtLink>
       </nav>
-      <div class="p-3 border-t border-zinc-200">
+      <div class="p-3 border-t border-(--ui-border)">
         <button
-          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-500 hover:bg-zinc-100 w-full transition-colors"
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-(--ui-text-muted) hover:bg-(--ui-bg-elevated) w-full transition-colors"
+          @click="toggleColorMode"
+        >
+          <UIcon :name="isDark ? 'i-lucide-sun' : 'i-lucide-moon'" class="size-4 shrink-0" />
+          {{ isDark ? 'Light Mode' : 'Dark Mode' }}
+        </button>
+        <button
+          class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-(--ui-text-muted) hover:bg-(--ui-bg-elevated) w-full transition-colors"
           @click="logout"
         >
           <UIcon name="i-lucide-log-out" class="size-4 shrink-0" />
@@ -74,11 +82,11 @@ function isActive(to: string) {
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col min-w-0">
-      <header class="h-14 bg-white border-b border-zinc-200 flex items-center px-4 lg:px-6 shrink-0">
-        <button class="lg:hidden mr-3 text-zinc-500 hover:text-zinc-700" @click="mobileOpen = true">
+      <header class="h-14 bg-(--ui-bg) border-b border-(--ui-border) flex items-center px-4 lg:px-6 shrink-0">
+        <button class="lg:hidden mr-3 text-(--ui-text-muted) hover:text-(--ui-text)" @click="mobileOpen = true">
           <UIcon name="i-lucide-menu" class="size-5" />
         </button>
-        <h2 class="text-sm font-medium text-zinc-500 truncate">ShopperArmy Admin</h2>
+        <h2 class="text-sm font-medium text-(--ui-text-muted) truncate">ShopperArmy Admin</h2>
       </header>
       <main class="flex-1 p-4 lg:p-6 overflow-auto">
         <slot />

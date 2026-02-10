@@ -3,11 +3,10 @@ definePageMeta({ layout: 'admin' })
 
 const route = useRoute()
 const id = route.params.id as string
-const { apiFetch } = useApi()
-const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
-const mission = ref<any>(null)
+
+const { data: mission, isPending, isError, error } = useMissionQuery(id)
+const updateMutation = useUpdateMission()
+const statusMutation = useUpdateMissionStatus()
 
 const form = reactive({
   title: '',
@@ -28,11 +27,10 @@ const form = reactive({
 })
 
 const stages = ref<any[]>([])
+const formReady = ref(false)
 
-onMounted(async () => {
-  try {
-    const res = await apiFetch<any>(`/missions/${id}`)
-    mission.value = res
+watch(mission, (res) => {
+  if (res && !formReady.value) {
     Object.assign(form, {
       title: res.title || '',
       description: res.description || '',
@@ -57,12 +55,9 @@ onMounted(async () => {
       reward_amount: (s.reward_amount || 0) / 100,
       is_optional: !!s.is_optional,
     }))
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to load mission'
-  } finally {
-    loading.value = false
+    formReady.value = true
   }
-})
+}, { immediate: true })
 
 function addStage() {
   stages.value.push({ stage_type: 'visit_link', stage_name: '', stage_description: '', reward_amount: 0, is_optional: false })
@@ -98,33 +93,21 @@ const stageTypeOptions = [
   { label: 'Receipt Upload', value: 'receipt_upload' },
 ]
 
-async function handleSubmit() {
-  saving.value = true
-  error.value = ''
-  try {
-    const body: any = { ...form }
-    if (stages.value.length > 0) body.stages = stages.value
-    if (!body.max_participants) delete body.max_participants
-    if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
-    if (!body.start_date) delete body.start_date
-    if (!body.end_date) delete body.end_date
-    if (!body.category) delete body.category
-    await apiFetch(`/missions/${id}`, { method: 'PUT', body })
-    navigateTo('/missions')
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to update mission'
-  } finally {
-    saving.value = false
-  }
+function handleSubmit() {
+  const body: any = { ...form }
+  if (stages.value.length > 0) body.stages = stages.value
+  if (!body.max_participants) delete body.max_participants
+  if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
+  if (!body.start_date) delete body.start_date
+  if (!body.end_date) delete body.end_date
+  if (!body.category) delete body.category
+  updateMutation.mutate({ id, data: body }, {
+    onSuccess: () => navigateTo('/missions'),
+  })
 }
 
-async function updateStatus(status: string) {
-  try {
-    await apiFetch(`/missions/${id}/status`, { method: 'PATCH', body: { status } })
-    if (mission.value) mission.value.status = status
-  } catch (e: any) {
-    alert(e?.data?.error || 'Failed to update status')
-  }
+function updateStatus(status: string) {
+  statusMutation.mutate({ id, status: status as any })
 }
 </script>
 
@@ -134,7 +117,7 @@ async function updateStatus(status: string) {
       <NuxtLink to="/missions">
         <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold">Edit Mission</h1>
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Edit Mission</h1>
       <template v-if="mission">
         <UBadge :color="(statusColor[mission.status] as any) || 'neutral'" variant="subtle" class="ml-2">
           {{ mission.status }}
@@ -142,28 +125,26 @@ async function updateStatus(status: string) {
       </template>
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
+    <div v-if="isPending" class="flex items-center justify-center py-20">
       <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
     </div>
 
     <template v-else-if="mission">
-      <!-- Stats bar -->
       <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-xl border border-zinc-200 p-4 text-center">
-          <p class="text-xl font-bold">{{ mission.participant_count ?? 0 }}</p>
-          <p class="text-xs text-zinc-500">Participants</p>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-center">
+          <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ mission.participant_count ?? 0 }}</p>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">Participants</p>
         </div>
-        <div class="bg-white rounded-xl border border-zinc-200 p-4 text-center">
-          <p class="text-xl font-bold">{{ mission.click_count ?? 0 }}</p>
-          <p class="text-xs text-zinc-500">Clicks</p>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-center">
+          <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ mission.click_count ?? 0 }}</p>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">Clicks</p>
         </div>
-        <div class="bg-white rounded-xl border border-zinc-200 p-4 text-center">
-          <p class="text-xl font-bold">{{ mission.conversion_count ?? 0 }}</p>
-          <p class="text-xs text-zinc-500">Conversions</p>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-center">
+          <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ mission.conversion_count ?? 0 }}</p>
+          <p class="text-xs text-zinc-500 dark:text-zinc-400">Conversions</p>
         </div>
       </div>
 
-      <!-- Status actions -->
       <div class="flex gap-2 mb-6">
         <UButton v-if="mission.status === 'draft'" size="sm" color="success" @click="updateStatus('active')">Activate</UButton>
         <UButton v-if="mission.status === 'active'" size="sm" color="warning" @click="updateStatus('paused')">Pause</UButton>
@@ -173,8 +154,8 @@ async function updateStatus(status: string) {
       </div>
 
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-          <h2 class="text-base font-semibold">Basic Info</h2>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Basic Info</h2>
           <UFormField label="Title" required>
             <UInput v-model="form.title" class="w-full" required />
           </UFormField>
@@ -199,8 +180,8 @@ async function updateStatus(status: string) {
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-          <h2 class="text-base font-semibold">Affiliate & Limits</h2>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Affiliate & Limits</h2>
           <div class="grid grid-cols-2 gap-4">
             <UFormField label="Affiliate URL">
               <UInput v-model="form.affiliate_url" type="url" class="w-full" />
@@ -231,21 +212,20 @@ async function updateStatus(status: string) {
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-          <h2 class="text-base font-semibold">Terms & Conditions</h2>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Terms & Conditions</h2>
           <UTextarea v-model="form.terms_conditions" :rows="3" class="w-full" />
         </div>
 
-        <!-- Stages -->
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold">Stages</h2>
+            <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Stages</h2>
             <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addStage">Add Stage</UButton>
           </div>
           <div v-if="!stages.length" class="text-sm text-zinc-400">No stages</div>
-          <div v-for="(stage, i) in stages" :key="i" class="border border-zinc-200 rounded-lg p-4 space-y-3">
+          <div v-for="(stage, i) in stages" :key="i" class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-zinc-700">Stage {{ i + 1 }}</span>
+              <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Stage {{ i + 1 }}</span>
               <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeStage(i)" />
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -270,10 +250,12 @@ async function updateStatus(status: string) {
           </div>
         </div>
 
-        <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+        <div v-if="updateMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+          {{ updateMutation.error.value?.message || 'Failed to update mission' }}
+        </div>
 
         <div class="flex gap-3">
-          <UButton type="submit" color="primary" :loading="saving" size="lg">Save Changes</UButton>
+          <UButton type="submit" color="primary" :loading="updateMutation.isPending.value" size="lg">Save Changes</UButton>
           <NuxtLink to="/missions">
             <UButton variant="outline" size="lg">Cancel</UButton>
           </NuxtLink>
@@ -281,6 +263,8 @@ async function updateStatus(status: string) {
       </form>
     </template>
 
-    <div v-else class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error || 'Mission not found' }}</div>
+    <div v-else-if="isError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+      {{ error?.message || 'Mission not found' }}
+    </div>
   </div>
 </template>

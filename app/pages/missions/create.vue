@@ -1,9 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
 
-const { apiFetch } = useApi()
-const saving = ref(false)
-const error = ref('')
+const createMutation = useCreateMission()
 
 const form = reactive({
   title: '',
@@ -68,24 +66,17 @@ const stageTypeOptions = [
   { label: 'Receipt Upload', value: 'receipt_upload' },
 ]
 
-async function handleSubmit() {
-  saving.value = true
-  error.value = ''
-  try {
-    const body: any = { ...form }
-    if (stages.value.length > 0) body.stages = stages.value
-    if (!body.max_participants) delete body.max_participants
-    if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
-    if (!body.start_date) delete body.start_date
-    if (!body.end_date) delete body.end_date
-    if (!body.category) delete body.category
-    await apiFetch('/missions', { method: 'POST', body })
-    navigateTo('/missions')
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to create mission'
-  } finally {
-    saving.value = false
-  }
+function handleSubmit() {
+  const body: any = { ...form }
+  if (stages.value.length > 0) body.stages = stages.value
+  if (!body.max_participants) delete body.max_participants
+  if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
+  if (!body.start_date) delete body.start_date
+  if (!body.end_date) delete body.end_date
+  if (!body.category) delete body.category
+  createMutation.mutate(body, {
+    onSuccess: () => navigateTo('/missions'),
+  })
 }
 </script>
 
@@ -95,12 +86,12 @@ async function handleSubmit() {
       <NuxtLink to="/missions">
         <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold">Create Mission</h1>
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create Mission</h1>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-        <h2 class="text-base font-semibold">Basic Info</h2>
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+        <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Basic Info</h2>
         <UFormField label="Title" required>
           <UInput v-model="form.title" placeholder="Mission title" class="w-full" required />
         </UFormField>
@@ -125,8 +116,8 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-        <h2 class="text-base font-semibold">Affiliate & Limits</h2>
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+        <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Affiliate & Limits</h2>
         <div class="grid grid-cols-2 gap-4">
           <UFormField label="Affiliate URL">
             <UInput v-model="form.affiliate_url" type="url" placeholder="https://..." class="w-full" />
@@ -157,21 +148,20 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-        <h2 class="text-base font-semibold">Terms & Conditions</h2>
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+        <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Terms & Conditions</h2>
         <UTextarea v-model="form.terms_conditions" placeholder="Enter terms..." :rows="3" class="w-full" />
       </div>
 
-      <!-- Stages -->
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold">Stages</h2>
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Stages</h2>
           <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addStage">Add Stage</UButton>
         </div>
         <div v-if="!stages.length" class="text-sm text-zinc-400">No stages added yet</div>
-        <div v-for="(stage, i) in stages" :key="i" class="border border-zinc-200 rounded-lg p-4 space-y-3">
+        <div v-for="(stage, i) in stages" :key="i" class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-zinc-700">Stage {{ i + 1 }}</span>
+            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Stage {{ i + 1 }}</span>
             <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeStage(i)" />
           </div>
           <div class="grid grid-cols-2 gap-3">
@@ -196,10 +186,12 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+      <div v-if="createMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+        {{ createMutation.error.value?.message || 'Failed to create mission' }}
+      </div>
 
       <div class="flex gap-3">
-        <UButton type="submit" color="primary" :loading="saving" size="lg">Create Mission</UButton>
+        <UButton type="submit" color="primary" :loading="createMutation.isPending.value" size="lg">Create Mission</UButton>
         <NuxtLink to="/missions">
           <UButton variant="outline" size="lg">Cancel</UButton>
         </NuxtLink>

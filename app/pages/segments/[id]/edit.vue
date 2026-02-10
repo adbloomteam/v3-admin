@@ -3,10 +3,9 @@ definePageMeta({ layout: 'admin' })
 
 const route = useRoute()
 const id = route.params.id as string
-const { apiFetch } = useApi()
-const loading = ref(true)
-const saving = ref(false)
-const error = ref('')
+
+const { data: segment, isPending, isError, error } = useSegmentQuery(id)
+const updateMutation = useUpdateSegment()
 
 const form = reactive({
   name: '',
@@ -16,14 +15,17 @@ const form = reactive({
 })
 
 const rules = ref<{ field: string; operator: string; value: string }[]>([])
+const formReady = ref(false)
+
+// Preview state — kept as raw apiFetch since no composable exists for preview
+const { apiFetch } = useApi()
 const previewCount = ref<number | null>(null)
 const previewUsers = ref<any[]>([])
 const previewing = ref(false)
 
-onMounted(async () => {
-  try {
-    const res = await apiFetch<any>(`/segments/${id}`)
-    const seg = res.segment || res
+watch(segment, (res) => {
+  if (res && !formReady.value) {
+    const seg = (res as any).segment || res
     Object.assign(form, {
       name: seg.name || '',
       description: seg.description || '',
@@ -37,12 +39,9 @@ onMounted(async () => {
         value: c.value || '',
       }))
     }
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to load segment'
-  } finally {
-    loading.value = false
+    formReady.value = true
   }
-})
+}, { immediate: true })
 
 function addRule() {
   rules.value.push({ field: 'state', operator: 'eq', value: '' })
@@ -70,21 +69,14 @@ const typeOptions = [
   { label: 'Static', value: 'static' },
 ]
 
-async function handleSubmit() {
-  saving.value = true
-  error.value = ''
-  try {
-    const body: any = { ...form }
-    if (rules.value.length > 0) {
-      body.rules = { conditions: rules.value }
-    }
-    await apiFetch(`/segments/${id}`, { method: 'PUT', body })
-    navigateTo('/segments')
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to update segment'
-  } finally {
-    saving.value = false
+function handleSubmit() {
+  const body: any = { ...form }
+  if (rules.value.length > 0) {
+    body.rules = { conditions: rules.value }
   }
+  updateMutation.mutate({ id, data: body }, {
+    onSuccess: () => navigateTo('/segments'),
+  })
 }
 
 async function preview() {
@@ -107,17 +99,21 @@ async function preview() {
       <NuxtLink to="/segments">
         <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold">Edit Segment</h1>
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Edit Segment</h1>
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
+    <div v-if="isPending" class="flex items-center justify-center py-20">
       <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
     </div>
 
-    <template v-else-if="!error || form.name">
+    <div v-else-if="isError && !formReady" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+      {{ error?.message || 'Failed to load segment' }}
+    </div>
+
+    <template v-else-if="formReady">
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-          <h2 class="text-base font-semibold">Segment Info</h2>
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Segment Info</h2>
           <UFormField label="Name" required>
             <UInput v-model="form.name" class="w-full" required />
           </UFormField>
@@ -134,15 +130,15 @@ async function preview() {
           </div>
         </div>
 
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold">Rules</h2>
+            <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Rules</h2>
             <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addRule">Add Rule</UButton>
           </div>
           <div v-if="!rules.length" class="text-sm text-zinc-400">No rules configured</div>
-          <div v-for="(rule, i) in rules" :key="i" class="border border-zinc-200 rounded-lg p-4 space-y-3">
+          <div v-for="(rule, i) in rules" :key="i" class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-zinc-700">Rule {{ i + 1 }}</span>
+              <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Rule {{ i + 1 }}</span>
               <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeRule(i)" />
             </div>
             <div class="grid grid-cols-3 gap-3">
@@ -159,30 +155,29 @@ async function preview() {
           </div>
         </div>
 
-        <!-- Preview -->
-        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <div class="flex items-center justify-between">
-            <h2 class="text-base font-semibold">Preview</h2>
+            <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Preview</h2>
             <UButton variant="outline" size="xs" icon="i-lucide-eye" :loading="previewing" @click="preview">Preview Matches</UButton>
           </div>
           <div v-if="previewCount !== null">
-            <p class="text-sm text-zinc-700 mb-3">
+            <p class="text-sm text-zinc-700 dark:text-zinc-300 mb-3">
               <span class="font-semibold text-lg">{{ previewCount }}</span> users match this segment
             </p>
             <div v-if="previewUsers.length" class="overflow-x-auto">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="border-b border-zinc-100">
-                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 uppercase">Email</th>
-                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 uppercase">Name</th>
-                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 uppercase">Location</th>
+                  <tr class="border-b border-zinc-100 dark:border-zinc-800">
+                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Email</th>
+                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Name</th>
+                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase">Location</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="u in previewUsers" :key="u.id" class="border-b border-zinc-50 last:border-0">
-                    <td class="px-3 py-2 text-zinc-700">{{ u.email }}</td>
-                    <td class="px-3 py-2 text-zinc-500">{{ [u.first_name, u.last_name].filter(Boolean).join(' ') || '—' }}</td>
-                    <td class="px-3 py-2 text-zinc-500">{{ [u.state, u.country].filter(Boolean).join(', ') || '—' }}</td>
+                  <tr v-for="u in previewUsers" :key="u.id" class="border-b border-zinc-50 dark:border-zinc-800/50 last:border-0">
+                    <td class="px-3 py-2 text-zinc-700 dark:text-zinc-300">{{ u.email }}</td>
+                    <td class="px-3 py-2 text-zinc-500 dark:text-zinc-400">{{ [u.first_name, u.last_name].filter(Boolean).join(' ') || '—' }}</td>
+                    <td class="px-3 py-2 text-zinc-500 dark:text-zinc-400">{{ [u.state, u.country].filter(Boolean).join(', ') || '—' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -191,17 +186,17 @@ async function preview() {
           <div v-else class="text-sm text-zinc-400">Click "Preview Matches" to see how many users match this segment.</div>
         </div>
 
-        <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+        <div v-if="updateMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+          {{ updateMutation.error.value?.message || 'Failed to update segment' }}
+        </div>
 
         <div class="flex gap-3">
-          <UButton type="submit" color="primary" :loading="saving" size="lg">Save Changes</UButton>
+          <UButton type="submit" color="primary" :loading="updateMutation.isPending.value" size="lg">Save Changes</UButton>
           <NuxtLink to="/segments">
             <UButton variant="outline" size="lg">Cancel</UButton>
           </NuxtLink>
         </div>
       </form>
     </template>
-
-    <div v-else class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
   </div>
 </template>

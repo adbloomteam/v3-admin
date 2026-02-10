@@ -1,9 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
 
-const { apiFetch } = useApi()
-const saving = ref(false)
-const error = ref('')
+const createMutation = useCreateProfileQuestion()
 
 const form = reactive({
   question_key: '',
@@ -32,21 +30,14 @@ const typeOptions = [
 
 const showOptions = computed(() => ['single_select', 'multi_select'].includes(form.question_type))
 
-async function handleSubmit() {
-  saving.value = true
-  error.value = ''
-  try {
-    const body: any = { ...form }
-    if (showOptions.value && options.value.length > 0) {
-      body.options = options.value.filter(Boolean)
-    }
-    await apiFetch('/profile-questions', { method: 'POST', body })
-    navigateTo('/profile-questions')
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to create question'
-  } finally {
-    saving.value = false
+function handleSubmit() {
+  const body: any = { ...form }
+  if (showOptions.value && options.value.length > 0) {
+    body.options = options.value.filter(Boolean)
   }
+  createMutation.mutate(body, {
+    onSuccess: () => navigateTo('/profile-questions'),
+  })
 }
 </script>
 
@@ -56,11 +47,11 @@ async function handleSubmit() {
       <NuxtLink to="/profile-questions">
         <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold">Create Profile Question</h1>
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create Profile Question</h1>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
         <UFormField label="Question Key" required>
           <UInput v-model="form.question_key" placeholder="e.g. favorite_brand" class="w-full font-mono" required />
           <template #help>Unique identifier for this question (snake_case)</template>
@@ -83,9 +74,9 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div v-if="showOptions" class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+      <div v-if="showOptions" class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold">Options</h2>
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Options</h2>
           <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addOption">Add Option</UButton>
         </div>
         <div v-if="!options.length" class="text-sm text-zinc-400">No options added yet</div>
@@ -95,10 +86,12 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+      <div v-if="createMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+        {{ createMutation.error.value?.message || 'Failed to create question' }}
+      </div>
 
       <div class="flex gap-3">
-        <UButton type="submit" color="primary" :loading="saving" size="lg">Create Question</UButton>
+        <UButton type="submit" color="primary" :loading="createMutation.isPending.value" size="lg">Create Question</UButton>
         <NuxtLink to="/profile-questions">
           <UButton variant="outline" size="lg">Cancel</UButton>
         </NuxtLink>

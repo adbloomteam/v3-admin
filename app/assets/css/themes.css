@@ -1,0 +1,63 @@
+/* ShopperArmy Admin — Theme Utilities */
+
+/* Smooth dark/light mode transitions */
+*,
+*::before,
+*::after {
+  transition-property: color, background-color, border-color, outline-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Disable transitions during color-mode switch to prevent flash */
+.color-mode-force *,
+.color-mode-force *::before,
+.color-mode-force *::after {
+  transition-duration: 0ms !important;
+}
+
+/* Admin-specific custom properties */
+:root {
+  --sa-radius: 0.5rem;
+  --sa-transition-fast: 150ms;
+  --sa-transition-normal: 250ms;
+  --sa-sidebar-width: 16rem;
+  --sa-sidebar-collapsed-width: 4rem;
+}
+
+/* Focus ring consistency */
+:focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling for dark mode */
+.dark {
+  color-scheme: dark;
+}
+
+.light {
+  color-scheme: light;
+}
+
+/* Smooth page transitions */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity var(--sa-transition-normal) ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+}
+
+/* Admin layout transitions (sidebar) */
+.layout-enter-active,
+.layout-leave-active {
+  transition: opacity var(--sa-transition-normal) ease;
+}
+
+.layout-enter-from,
+.layout-leave-to {
+  opacity: 0;
+}

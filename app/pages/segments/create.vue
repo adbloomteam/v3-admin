@@ -1,9 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin' })
 
-const { apiFetch } = useApi()
-const saving = ref(false)
-const error = ref('')
+const createMutation = useCreateSegment()
 
 const form = reactive({
   name: '',
@@ -40,21 +38,14 @@ const typeOptions = [
   { label: 'Static', value: 'static' },
 ]
 
-async function handleSubmit() {
-  saving.value = true
-  error.value = ''
-  try {
-    const body: any = { ...form }
-    if (rules.value.length > 0) {
-      body.rules = { conditions: rules.value }
-    }
-    await apiFetch('/segments', { method: 'POST', body })
-    navigateTo('/segments')
-  } catch (e: any) {
-    error.value = e?.data?.error || 'Failed to create segment'
-  } finally {
-    saving.value = false
+function handleSubmit() {
+  const body: any = { ...form }
+  if (rules.value.length > 0) {
+    body.rules = { conditions: rules.value }
   }
+  createMutation.mutate(body, {
+    onSuccess: () => navigateTo('/segments'),
+  })
 }
 </script>
 
@@ -64,12 +55,12 @@ async function handleSubmit() {
       <NuxtLink to="/segments">
         <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
       </NuxtLink>
-      <h1 class="text-2xl font-bold">Create Segment</h1>
+      <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Create Segment</h1>
     </div>
 
     <form @submit.prevent="handleSubmit" class="space-y-6">
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
-        <h2 class="text-base font-semibold">Segment Info</h2>
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+        <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Segment Info</h2>
         <UFormField label="Name" required>
           <UInput v-model="form.name" placeholder="Segment name" class="w-full" required />
         </UFormField>
@@ -86,15 +77,15 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold">Rules</h2>
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Rules</h2>
           <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addRule">Add Rule</UButton>
         </div>
         <div v-if="!rules.length" class="text-sm text-zinc-400">No rules added yet. Dynamic segments need rules to match users.</div>
-        <div v-for="(rule, i) in rules" :key="i" class="border border-zinc-200 rounded-lg p-4 space-y-3">
+        <div v-for="(rule, i) in rules" :key="i" class="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4 space-y-3">
           <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-zinc-700">Rule {{ i + 1 }}</span>
+            <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Rule {{ i + 1 }}</span>
             <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeRule(i)" />
           </div>
           <div class="grid grid-cols-3 gap-3">
@@ -111,10 +102,12 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+      <div v-if="createMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+        {{ createMutation.error.value?.message || 'Failed to create segment' }}
+      </div>
 
       <div class="flex gap-3">
-        <UButton type="submit" color="primary" :loading="saving" size="lg">Create Segment</UButton>
+        <UButton type="submit" color="primary" :loading="createMutation.isPending.value" size="lg">Create Segment</UButton>
         <NuxtLink to="/segments">
           <UButton variant="outline" size="lg">Cancel</UButton>
         </NuxtLink>
