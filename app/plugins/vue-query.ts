@@ -1,4 +1,4 @@
-import { VueQueryPlugin, QueryClient, MutationCache, type VueQueryPluginOptions } from '@tanstack/vue-query'
+import { VueQueryPlugin, QueryClient, MutationCache, QueryCache, type VueQueryPluginOptions } from '@tanstack/vue-query'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const mutationCache = new MutationCache({
@@ -6,6 +6,17 @@ export default defineNuxtPlugin((nuxtApp) => {
       if (import.meta.client) {
         const toast = useToast()
         const message = error?.data?.error || error?.message || 'Something went wrong'
+        toast.add({ title: 'Error', description: message, color: 'error' })
+      }
+    },
+  })
+
+  const queryCache = new QueryCache({
+    onError: (error: any, query) => {
+      // Only toast on background refetch failures (not initial loads)
+      if (import.meta.client && query.state.dataUpdateCount > 0) {
+        const toast = useToast()
+        const message = error?.data?.error || error?.message || 'Failed to refresh data'
         toast.add({ title: 'Error', description: message, color: 'error' })
       }
     },
@@ -25,6 +36,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       },
     },
     mutationCache,
+    queryCache,
   })
 
   const options: VueQueryPluginOptions = { queryClient }
