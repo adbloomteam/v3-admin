@@ -202,7 +202,7 @@ async function handleSubmit() {
       })
     })
 
-    const missionId = result.data.id
+    const missionId = result.id ?? result.data?.id
 
     // Step 2: Upload images if any are selected
     const imageUpdates: any = {}
