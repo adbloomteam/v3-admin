@@ -90,7 +90,9 @@ function isActive(to: string) {
         <h2 class="text-sm font-medium text-(--ui-text-muted) truncate">ShopperArmy Admin</h2>
       </header>
       <main class="flex-1 p-4 lg:p-6 overflow-auto">
-        <slot />
+        <ErrorBoundary>
+          <slot />
+        </ErrorBoundary>
       </main>
     </div>
   </div>

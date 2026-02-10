@@ -38,6 +38,7 @@ export interface Mission {
   title: string
   description: string
   slug: string
+  brand_id?: string | null
   brand_name?: string | null
   brand_logo_url?: string | null
   brand_color?: string | null
@@ -297,6 +298,41 @@ export interface SendNotificationResult {
   failCount: number
 }
 
+// ── Brands ───────────────────────────────────────────────────
+
+export interface Brand {
+  id: string
+  name: string
+  description?: string | null
+  logo_url?: string | null
+  image_url?: string | null
+  website_url?: string | null
+  external_affiliate_id?: string | null
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ListBrandsParams {
+  page?: number
+  perPage?: number
+  search?: string
+}
+
+export interface CreateBrandRequest {
+  name: string
+  description?: string
+  logo_url?: string
+  image_url?: string
+  website_url?: string
+  external_affiliate_id?: string
+}
+
+export type UpdateBrandRequest = Partial<CreateBrandRequest> & {
+  logo_url?: string | null
+  image_url?: string | null
+}
+
 // ── Request Types ─────────────────────────────────────────────
 
 export interface ListMissionsParams {
@@ -310,6 +346,7 @@ export interface ListMissionsParams {
 export interface CreateMissionRequest {
   title: string
   description: string
+  brand_id?: string
   brand_name?: string
   brand_logo_url?: string
   brand_color?: string

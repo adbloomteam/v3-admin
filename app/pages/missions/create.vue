@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { createMissionSchema } from '~/schemas/mission'
+
 definePageMeta({ layout: 'admin' })
 
 const createMutation = useCreateMission()
 const uploadMutation = useUploadMissionImage()
+const { validate, errors, getFieldError, hasFieldError } = useFormValidation(createMissionSchema)
 
 const form = reactive({
   title: '',
@@ -168,6 +171,32 @@ const stageTypeOptions = [
 async function handleSubmit() {
   uploadError.value = ''
 
+  // Prepare data for validation
+  const formData: any = { ...form }
+  if (stages.value.length > 0) {
+    formData.stages = stages.value.map((s: any) => {
+      const stage = { ...s }
+      if (stage.stage_type === 'survey' && stage.config?.profile_question_ids?.length) {
+        stage.config = { profile_question_ids: stage.config.profile_question_ids }
+      } else {
+        delete stage.config
+      }
+      return stage
+    })
+  }
+
+  // Validate form data
+  if (!validate(formData)) {
+    uploadError.value = 'Please fix validation errors before submitting'
+    // Scroll to first error
+    const firstErrorField = Object.keys(errors.value)[0]
+    if (firstErrorField) {
+      const element = document.querySelector(`[name="${firstErrorField}"]`)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    return
+  }
+
   // Step 1: Create the mission first (we need the mission ID for image uploads)
   const body: any = { ...form }
   if (stages.value.length > 0) {
@@ -288,11 +317,26 @@ async function handleSubmit() {
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
         <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Basic Info</h2>
-        <UFormField label="Title" required>
-          <UInput v-model="form.title" placeholder="Mission title" class="w-full" required />
+        <UFormField label="Title" required :error="getFieldError('title')">
+          <UInput
+            v-model="form.title"
+            name="title"
+            placeholder="Mission title"
+            class="w-full"
+            :class="{ 'border-red-500': hasFieldError('title') }"
+            required
+          />
         </UFormField>
-        <UFormField label="Description" required>
-          <UTextarea v-model="form.description" placeholder="Describe the mission..." :rows="3" class="w-full" required />
+        <UFormField label="Description" required :error="getFieldError('description')">
+          <UTextarea
+            v-model="form.description"
+            name="description"
+            placeholder="Describe the mission..."
+            :rows="3"
+            class="w-full"
+            :class="{ 'border-red-500': hasFieldError('description') }"
+            required
+          />
         </UFormField>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField label="Type" required>
@@ -306,8 +350,17 @@ async function handleSubmit() {
           <UFormField label="Brand Name">
             <UInput v-model="form.brand_name" placeholder="Brand" class="w-full" />
           </UFormField>
-          <UFormField label="Reward Amount ($)" required>
-            <UInput v-model.number="form.reward_amount" type="number" step="0.01" min="0" class="w-full" required />
+          <UFormField label="Reward Amount ($)" required :error="getFieldError('reward_amount')">
+            <UInput
+              v-model.number="form.reward_amount"
+              name="reward_amount"
+              type="number"
+              step="0.01"
+              min="0"
+              class="w-full"
+              :class="{ 'border-red-500': hasFieldError('reward_amount') }"
+              required
+            />
           </UFormField>
         </div>
       </div>
