@@ -21,10 +21,18 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
-  async function fetchUser() {
-    const { rawFetch } = useApi()
+  async function fetchUser(explicitToken?: string) {
+    const config = useRuntimeConfig()
+    const token = explicitToken || useCookie('admin_auth_token').value
+    if (!token) {
+      user.value = null
+      return null
+    }
     try {
-      const result = await rawFetch<any>('/client/user/me')
+      const result = await $fetch<any>('/client/user/me', {
+        baseURL: config.public.apiBaseUrl + '/api/v1',
+        headers: { Authorization: `Bearer ${token}` },
+      })
       user.value = result
       return result
     } catch {
@@ -48,7 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function initAuth() {
     const token = useCookie('admin_auth_token')
     if (token.value && !user.value) {
-      await fetchUser()
+      await fetchUser(token.value)
     }
   }
 
