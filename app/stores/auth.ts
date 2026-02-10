@@ -16,6 +16,9 @@ export const useAuthStore = defineStore('auth', () => {
     })
     if (result.session?.access_token) {
       useCookie('admin_auth_token', { maxAge: 60 * 60 * 24 * 7 }).value = result.session.access_token
+      if (result.session.refresh_token) {
+        useCookie('admin_refresh_token', { maxAge: 60 * 60 * 24 * 30 }).value = result.session.refresh_token
+      }
       user.value = result.user || null
     }
     return result
@@ -49,6 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Clear local state regardless
     }
     useCookie('admin_auth_token').value = null
+    useCookie('admin_refresh_token').value = null
     user.value = null
     navigateTo('/login')
   }

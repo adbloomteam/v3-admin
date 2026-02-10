@@ -16,7 +16,11 @@ export default defineNuxtPlugin((nuxtApp) => {
       queries: {
         staleTime: 1000 * 60 * 2,
         gcTime: 1000 * 60 * 5,
-        retry: 1,
+        retry: (failureCount, error: any) => {
+          // Don't retry 401s — useApi handles token refresh
+          if (error?.status === 401) return false
+          return failureCount < 1
+        },
         refetchOnWindowFocus: false,
       },
     },
