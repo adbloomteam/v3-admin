@@ -72,12 +72,11 @@ const questionTypeLabel: Record<string, string> = {
           </thead>
           <tbody>
             <tr v-for="q in questions" :key="q.id" class="border-b border-zinc-50 last:border-0 hover:bg-zinc-50">
-              <td class="px-5 py-3 text-zinc-500">{{ q.display_order ?? '—' }}</td>
+              <td class="px-5 py-3 text-zinc-500">{{ q.sort_order ?? '—' }}</td>
               <td class="px-5 py-3">
                 <NuxtLink :to="`/profile-questions/${q.id}/edit`" class="font-medium text-zinc-900 hover:text-rose-600">
                   {{ q.question_text }}
                 </NuxtLink>
-                <p v-if="q.category" class="text-xs text-zinc-400 mt-0.5">{{ q.category }}</p>
               </td>
               <td class="px-5 py-3 text-zinc-500 font-mono text-xs">{{ q.question_key }}</td>
               <td class="px-5 py-3">
