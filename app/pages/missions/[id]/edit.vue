@@ -7,11 +7,15 @@ const id = route.params.id as string
 const { data: mission, isPending, isError, error } = useMissionQuery(id)
 const updateMutation = useUpdateMission()
 const statusMutation = useUpdateMissionStatus()
+const uploadMutation = useUploadMissionImage()
 
 const form = reactive({
   title: '',
   description: '',
   brand_name: '',
+  brand_logo_url: '',
+  hero_image_url: '',
+  mission_images: [] as string[],
   mission_type: 'affiliate',
   category: '',
   affiliate_url: '',
@@ -29,12 +33,124 @@ const form = reactive({
 const stages = ref<any[]>([])
 const formReady = ref(false)
 
+// Image upload state
+const logoFile = ref<File | null>(null)
+const heroFile = ref<File | null>(null)
+const galleryFiles = ref<File[]>([])
+const uploadingLogo = ref(false)
+const uploadingHero = ref(false)
+const uploadingGallery = ref(false)
+const uploadError = ref('')
+
+// Handle logo file selection
+function handleLogoChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files?.[0]) {
+    logoFile.value = target.files[0]
+    uploadError.value = ''
+  }
+}
+
+// Handle hero file selection
+function handleHeroChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files?.[0]) {
+    heroFile.value = target.files[0]
+    uploadError.value = ''
+  }
+}
+
+// Handle gallery files selection
+function handleGalleryChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files) {
+    galleryFiles.value = Array.from(target.files)
+    uploadError.value = ''
+  }
+}
+
+// Upload individual image immediately
+async function uploadImageNow(type: 'logo' | 'hero') {
+  const file = type === 'logo' ? logoFile.value : heroFile.value
+  if (!file) return
+
+  const isLogoUpload = type === 'logo'
+  if (isLogoUpload) uploadingLogo.value = true
+  else uploadingHero.value = true
+
+  uploadError.value = ''
+
+  try {
+    const result = await uploadMutation.mutateAsync({
+      file,
+      missionId: id,
+      type,
+    })
+
+    // Update mission immediately with new URL
+    await updateMutation.mutateAsync({
+      id,
+      data: isLogoUpload ? { brand_logo_url: result.url } : { hero_image_url: result.url },
+    })
+
+    // Update local form state
+    if (isLogoUpload) form.brand_logo_url = result.url
+    else form.hero_image_url = result.url
+
+    // Clear file input
+    if (isLogoUpload) logoFile.value = null
+    else heroFile.value = null
+  } catch (err: any) {
+    uploadError.value = `Upload failed: ${err.message}`
+  } finally {
+    if (isLogoUpload) uploadingLogo.value = false
+    else uploadingHero.value = false
+  }
+}
+
+// Upload gallery images immediately
+async function uploadGalleryNow() {
+  if (galleryFiles.value.length === 0) return
+
+  uploadingGallery.value = true
+  uploadError.value = ''
+
+  try {
+    const newUrls: string[] = []
+    for (const file of galleryFiles.value) {
+      const result = await uploadMutation.mutateAsync({
+        file,
+        missionId: id,
+        type: 'gallery',
+      })
+      newUrls.push(result.url)
+    }
+
+    // Append to existing gallery images
+    const updatedGallery = [...(form.mission_images || []), ...newUrls]
+    await updateMutation.mutateAsync({
+      id,
+      data: { mission_images: updatedGallery },
+    })
+
+    form.mission_images = updatedGallery
+    galleryFiles.value = []
+  } catch (err: any) {
+    uploadError.value = `Gallery upload failed: ${err.message}`
+  } finally {
+    uploadingGallery.value = false
+  }
+}
+
 watch(mission, (res) => {
   if (res && !formReady.value) {
     Object.assign(form, {
       title: res.title || '',
       description: res.description || '',
       brand_name: res.brand_name || '',
+      brand_logo_url: res.brand_logo_url || '',
+      hero_image_url: res.hero_image_url || '',
+      mission_images: res.mission_images || [],
       mission_type: res.mission_type || 'affiliate',
       category: res.category || 'none',
       affiliate_url: res.affiliate_url || '',
@@ -54,15 +170,23 @@ watch(mission, (res) => {
       stage_description: s.stage_description || '',
       reward_amount: (s.reward_amount || 0) / 100,
       is_optional: !!s.is_optional,
+      config: s.config || {},
     }))
     formReady.value = true
   }
 }, { immediate: true })
 
 function addStage() {
-  stages.value.push({ stage_type: 'visit_link', stage_name: '', stage_description: '', reward_amount: 0, is_optional: false })
+  stages.value.push({ stage_type: 'visit_link', stage_name: '', stage_description: '', reward_amount: 0, is_optional: false, config: {} })
 }
 function removeStage(i: number) { stages.value.splice(i, 1) }
+
+function onStageTypeChange(stage: any) {
+  if (stage.stage_type === 'survey') {
+    if (!stage.config) stage.config = {}
+    if (!stage.config.profile_question_ids) stage.config.profile_question_ids = []
+  }
+}
 
 const typeOptions = [
   { label: 'Affiliate', value: 'affiliate' },
@@ -93,9 +217,27 @@ const stageTypeOptions = [
   { label: 'Receipt Upload', value: 'receipt_upload' },
 ]
 
+const statusColor: Record<string, string> = {
+  draft: 'neutral',
+  active: 'success',
+  paused: 'warning',
+  completed: 'info',
+  archived: 'neutral',
+}
+
 function handleSubmit() {
   const body: any = { ...form }
-  if (stages.value.length > 0) body.stages = stages.value
+  if (stages.value.length > 0) {
+    body.stages = stages.value.map((s: any) => {
+      const stage = { ...s }
+      if (stage.stage_type === 'survey' && stage.config?.profile_question_ids?.length) {
+        stage.config = { profile_question_ids: stage.config.profile_question_ids }
+      } else {
+        delete stage.config
+      }
+      return stage
+    })
+  }
   if (!body.max_participants) delete body.max_participants
   if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
   if (!body.start_date) delete body.start_date
@@ -181,6 +323,123 @@ function updateStatus(status: string) {
         </div>
 
         <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+          <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Images</h2>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Upload mission images. Changes are saved immediately. Supported formats: JPEG, PNG, WebP.</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Logo Upload -->
+            <div class="space-y-3">
+              <UFormField label="Brand Logo" help="Max 5MB">
+                <div class="space-y-2">
+                  <div v-if="form.brand_logo_url" class="relative w-full h-32 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800">
+                    <img :src="form.brand_logo_url" alt="Logo" class="w-full h-full object-contain" />
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    @change="handleLogoChange"
+                    class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-lg file:border-0
+                      file:text-sm file:font-medium
+                      file:bg-zinc-100 dark:file:bg-zinc-800
+                      file:text-zinc-700 dark:file:text-zinc-300
+                      hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                      file:cursor-pointer cursor-pointer"
+                  />
+                  <div v-if="logoFile" class="flex items-center gap-2">
+                    <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ logoFile.name }}</span>
+                    <UButton
+                      size="xs"
+                      color="primary"
+                      :loading="uploadingLogo"
+                      @click="uploadImageNow('logo')"
+                    >
+                      Upload
+                    </UButton>
+                  </div>
+                </div>
+              </UFormField>
+            </div>
+
+            <!-- Hero Image Upload -->
+            <div class="space-y-3">
+              <UFormField label="Hero Image" help="Max 5MB">
+                <div class="space-y-2">
+                  <div v-if="form.hero_image_url" class="relative w-full h-32 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800">
+                    <img :src="form.hero_image_url" alt="Hero" class="w-full h-full object-cover" />
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    @change="handleHeroChange"
+                    class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-lg file:border-0
+                      file:text-sm file:font-medium
+                      file:bg-zinc-100 dark:file:bg-zinc-800
+                      file:text-zinc-700 dark:file:text-zinc-300
+                      hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                      file:cursor-pointer cursor-pointer"
+                  />
+                  <div v-if="heroFile" class="flex items-center gap-2">
+                    <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ heroFile.name }}</span>
+                    <UButton
+                      size="xs"
+                      color="primary"
+                      :loading="uploadingHero"
+                      @click="uploadImageNow('hero')"
+                    >
+                      Upload
+                    </UButton>
+                  </div>
+                </div>
+              </UFormField>
+            </div>
+          </div>
+
+          <!-- Gallery Images -->
+          <UFormField label="Gallery Images" help="Max 5MB each, multiple files allowed">
+            <div class="space-y-3">
+              <div v-if="form.mission_images && form.mission_images.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div v-for="(url, idx) in form.mission_images" :key="idx" class="relative w-full aspect-square rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800">
+                  <img :src="url" alt="Gallery" class="w-full h-full object-cover" />
+                </div>
+              </div>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                multiple
+                @change="handleGalleryChange"
+                class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-zinc-100 dark:file:bg-zinc-800
+                  file:text-zinc-700 dark:file:text-zinc-300
+                  hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                  file:cursor-pointer cursor-pointer"
+              />
+              <div v-if="galleryFiles.length > 0" class="flex items-center gap-2">
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ galleryFiles.length }} file(s) selected</span>
+                <UButton
+                  size="xs"
+                  color="primary"
+                  :loading="uploadingGallery"
+                  @click="uploadGalleryNow"
+                >
+                  Upload
+                </UButton>
+              </div>
+            </div>
+          </UFormField>
+
+          <div v-if="uploadError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+            {{ uploadError }}
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Affiliate & Limits</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Affiliate URL">
@@ -230,7 +489,7 @@ function updateStatus(status: string) {
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <UFormField label="Type">
-                <USelect v-model="stage.stage_type" :items="stageTypeOptions" value-key="value" class="w-full" size="sm" />
+                <USelect v-model="stage.stage_type" :items="stageTypeOptions" value-key="value" class="w-full" size="sm" @update:model-value="onStageTypeChange(stage)" />
               </UFormField>
               <UFormField label="Name">
                 <UInput v-model="stage.stage_name" class="w-full" size="sm" required />
@@ -247,6 +506,7 @@ function updateStatus(status: string) {
                 <UCheckbox v-model="stage.is_optional" label="Optional" />
               </div>
             </div>
+            <SurveyQuestionPicker v-if="stage.stage_type === 'survey'" v-model="stage.config.profile_question_ids" />
           </div>
         </div>
 

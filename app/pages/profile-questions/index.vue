@@ -32,6 +32,31 @@ const questionTypeLabel: Record<string, string> = {
   number: 'Number',
   date: 'Date',
 }
+
+const categoryLabel: Record<string, string> = {
+  demographics: 'Demographics',
+  lifestyle: 'Lifestyle',
+  purchasing: 'Purchasing',
+  interests: 'Interests',
+  behavior: 'Behavior',
+  preferences: 'Preferences',
+}
+
+const categoryFilter = ref('all')
+const categoryFilterOptions = [
+  { label: 'All Categories', value: 'all' },
+  { label: 'Demographics', value: 'demographics' },
+  { label: 'Lifestyle', value: 'lifestyle' },
+  { label: 'Purchasing', value: 'purchasing' },
+  { label: 'Interests', value: 'interests' },
+  { label: 'Behavior', value: 'behavior' },
+  { label: 'Preferences', value: 'preferences' },
+]
+
+const filteredQuestions = computed(() => {
+  if (categoryFilter.value === 'all') return questions.value
+  return questions.value.filter((q: any) => q.category === categoryFilter.value)
+})
 </script>
 
 <template>
@@ -47,8 +72,13 @@ const questionTypeLabel: Record<string, string> = {
       {{ error?.message || 'Failed to load profile questions' }}
     </div>
 
+    <div class="flex items-center gap-3 mb-4">
+      <USelect v-model="categoryFilter" :items="categoryFilterOptions" value-key="value" class="w-48" size="sm" />
+      <span v-if="!isPending && questions.length" class="text-xs text-zinc-400">{{ filteredQuestions.length }} of {{ questions.length }} questions</span>
+    </div>
+
     <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-      <TablesTableSkeleton v-if="isPending" :cols="6" :rows="4" />
+      <TablesTableSkeleton v-if="isPending" :cols="7" :rows="4" />
 
       <div v-else-if="!questions.length" class="px-5 py-16 text-center">
         <UIcon name="i-lucide-list-checks" class="size-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
@@ -66,13 +96,14 @@ const questionTypeLabel: Record<string, string> = {
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Order</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Question</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Key</th>
+              <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Category</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Type</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Required</th>
               <th class="text-right px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="q in questions" :key="q.id" class="border-b border-zinc-50 dark:border-zinc-800/50 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
+            <tr v-for="q in filteredQuestions" :key="q.id" class="border-b border-zinc-50 dark:border-zinc-800/50 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
               <td class="px-5 py-3 text-zinc-500 dark:text-zinc-400">{{ q.sort_order ?? '—' }}</td>
               <td class="px-5 py-3">
                 <NuxtLink :to="`/profile-questions/${q.id}/edit`" class="font-medium text-zinc-900 dark:text-zinc-100 hover:text-rose-600 dark:hover:text-rose-400">
@@ -80,6 +111,9 @@ const questionTypeLabel: Record<string, string> = {
                 </NuxtLink>
               </td>
               <td class="px-5 py-3 text-zinc-500 dark:text-zinc-400 font-mono text-xs">{{ q.question_key }}</td>
+              <td class="px-5 py-3">
+                <UBadge color="primary" variant="subtle" size="sm" class="capitalize">{{ categoryLabel[q.category] || q.category || 'demographics' }}</UBadge>
+              </td>
               <td class="px-5 py-3">
                 <UBadge color="neutral" variant="subtle" size="sm">{{ questionTypeLabel[q.question_type] || q.question_type }}</UBadge>
               </td>

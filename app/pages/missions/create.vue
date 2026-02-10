@@ -2,11 +2,15 @@
 definePageMeta({ layout: 'admin' })
 
 const createMutation = useCreateMission()
+const uploadMutation = useUploadMissionImage()
 
 const form = reactive({
   title: '',
   description: '',
   brand_name: '',
+  brand_logo_url: '',
+  hero_image_url: '',
+  mission_images: [] as string[],
   mission_type: 'affiliate',
   category: '',
   affiliate_url: '',
@@ -23,6 +27,92 @@ const form = reactive({
 
 const stages = ref<any[]>([])
 
+// Image upload state
+const logoFile = ref<File | null>(null)
+const heroFile = ref<File | null>(null)
+const galleryFiles = ref<File[]>([])
+const uploadingLogo = ref(false)
+const uploadingHero = ref(false)
+const uploadingGallery = ref(false)
+const uploadError = ref('')
+
+// Handle logo file selection
+function handleLogoChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files?.[0]) {
+    logoFile.value = target.files[0]
+    uploadError.value = ''
+  }
+}
+
+// Handle hero file selection
+function handleHeroChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files?.[0]) {
+    heroFile.value = target.files[0]
+    uploadError.value = ''
+  }
+}
+
+// Handle gallery files selection
+function handleGalleryChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  if (target.files) {
+    galleryFiles.value = Array.from(target.files)
+    uploadError.value = ''
+  }
+}
+
+// Upload logo image
+async function uploadLogo() {
+  if (!logoFile.value) return
+
+  uploadingLogo.value = true
+  uploadError.value = ''
+
+  try {
+    // Create temporary mission first to get ID (or use a placeholder)
+    // For now, we'll upload during form submission
+    uploadError.value = 'Logo will be uploaded when mission is created'
+  } catch (err: any) {
+    uploadError.value = err.message || 'Logo upload failed'
+  } finally {
+    uploadingLogo.value = false
+  }
+}
+
+// Upload hero image
+async function uploadHero() {
+  if (!heroFile.value) return
+
+  uploadingHero.value = true
+  uploadError.value = ''
+
+  try {
+    uploadError.value = 'Hero image will be uploaded when mission is created'
+  } catch (err: any) {
+    uploadError.value = err.message || 'Hero upload failed'
+  } finally {
+    uploadingHero.value = false
+  }
+}
+
+// Upload gallery images
+async function uploadGallery() {
+  if (galleryFiles.value.length === 0) return
+
+  uploadingGallery.value = true
+  uploadError.value = ''
+
+  try {
+    uploadError.value = 'Gallery images will be uploaded when mission is created'
+  } catch (err: any) {
+    uploadError.value = err.message || 'Gallery upload failed'
+  } finally {
+    uploadingGallery.value = false
+  }
+}
+
 function addStage() {
   stages.value.push({
     stage_type: 'visit_link',
@@ -30,7 +120,16 @@ function addStage() {
     stage_description: '',
     reward_amount: 0,
     is_optional: false,
+    config: {},
   })
+}
+
+// When stage type changes to survey, initialize question IDs array
+function onStageTypeChange(stage: any) {
+  if (stage.stage_type === 'survey') {
+    if (!stage.config) stage.config = {}
+    if (!stage.config.profile_question_ids) stage.config.profile_question_ids = []
+  }
 }
 
 function removeStage(i: number) {
@@ -66,17 +165,114 @@ const stageTypeOptions = [
   { label: 'Receipt Upload', value: 'receipt_upload' },
 ]
 
-function handleSubmit() {
+async function handleSubmit() {
+  uploadError.value = ''
+
+  // Step 1: Create the mission first (we need the mission ID for image uploads)
   const body: any = { ...form }
-  if (stages.value.length > 0) body.stages = stages.value
+  if (stages.value.length > 0) {
+    body.stages = stages.value.map((s: any) => {
+      const stage = { ...s }
+      // Only include config for survey stages
+      if (stage.stage_type === 'survey' && stage.config?.profile_question_ids?.length) {
+        stage.config = { profile_question_ids: stage.config.profile_question_ids }
+      } else {
+        delete stage.config
+      }
+      return stage
+    })
+  }
   if (!body.max_participants) delete body.max_participants
   if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
   if (!body.start_date) delete body.start_date
   if (!body.end_date) delete body.end_date
   if (!body.category || body.category === 'none') delete body.category
-  createMutation.mutate(body, {
-    onSuccess: () => navigateTo('/missions'),
-  })
+
+  // Remove image fields from initial creation (we'll update them after upload)
+  delete body.brand_logo_url
+  delete body.hero_image_url
+  delete body.mission_images
+
+  try {
+    // Create mission
+    const result = await new Promise<any>((resolve, reject) => {
+      createMutation.mutate(body, {
+        onSuccess: (data) => resolve(data),
+        onError: (err) => reject(err),
+      })
+    })
+
+    const missionId = result.data.id
+
+    // Step 2: Upload images if any are selected
+    const imageUpdates: any = {}
+
+    if (logoFile.value) {
+      uploadingLogo.value = true
+      try {
+        const logoResult = await uploadMutation.mutateAsync({
+          file: logoFile.value,
+          missionId,
+          type: 'logo',
+        })
+        imageUpdates.brand_logo_url = logoResult.url
+      } catch (err: any) {
+        uploadError.value = `Logo upload failed: ${err.message}`
+      } finally {
+        uploadingLogo.value = false
+      }
+    }
+
+    if (heroFile.value) {
+      uploadingHero.value = true
+      try {
+        const heroResult = await uploadMutation.mutateAsync({
+          file: heroFile.value,
+          missionId,
+          type: 'hero',
+        })
+        imageUpdates.hero_image_url = heroResult.url
+      } catch (err: any) {
+        uploadError.value = `Hero upload failed: ${err.message}`
+      } finally {
+        uploadingHero.value = false
+      }
+    }
+
+    if (galleryFiles.value.length > 0) {
+      uploadingGallery.value = true
+      const galleryUrls: string[] = []
+      try {
+        for (const file of galleryFiles.value) {
+          const galleryResult = await uploadMutation.mutateAsync({
+            file,
+            missionId,
+            type: 'gallery',
+          })
+          galleryUrls.push(galleryResult.url)
+        }
+        imageUpdates.mission_images = galleryUrls
+      } catch (err: any) {
+        uploadError.value = `Gallery upload failed: ${err.message}`
+      } finally {
+        uploadingGallery.value = false
+      }
+    }
+
+    // Step 3: Update mission with image URLs if any were uploaded
+    if (Object.keys(imageUpdates).length > 0) {
+      const updateMutation = useUpdateMission()
+      await updateMutation.mutateAsync({
+        id: missionId,
+        data: imageUpdates,
+      })
+    }
+
+    // Success! Navigate to missions page
+    navigateTo('/missions')
+  } catch (err: any) {
+    uploadError.value = err.message || 'Failed to create mission'
+  }
 }
 </script>
 
@@ -114,6 +310,77 @@ function handleSubmit() {
             <UInput v-model.number="form.reward_amount" type="number" step="0.01" min="0" class="w-full" required />
           </UFormField>
         </div>
+      </div>
+
+      <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
+        <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Images</h2>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400">Upload mission images (optional). Supported formats: JPEG, PNG, WebP.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <UFormField label="Brand Logo" help="Max 5MB">
+            <div class="space-y-2">
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                @change="handleLogoChange"
+                class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-zinc-100 dark:file:bg-zinc-800
+                  file:text-zinc-700 dark:file:text-zinc-300
+                  hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                  file:cursor-pointer cursor-pointer"
+              />
+              <div v-if="logoFile" class="text-xs text-zinc-500 dark:text-zinc-400">
+                Selected: {{ logoFile.name }}
+              </div>
+            </div>
+          </UFormField>
+
+          <UFormField label="Hero Image" help="Max 5MB">
+            <div class="space-y-2">
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                @change="handleHeroChange"
+                class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-zinc-100 dark:file:bg-zinc-800
+                  file:text-zinc-700 dark:file:text-zinc-300
+                  hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                  file:cursor-pointer cursor-pointer"
+              />
+              <div v-if="heroFile" class="text-xs text-zinc-500 dark:text-zinc-400">
+                Selected: {{ heroFile.name }}
+              </div>
+            </div>
+          </UFormField>
+        </div>
+
+        <UFormField label="Gallery Images" help="Max 5MB each, multiple files allowed">
+          <div class="space-y-2">
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              multiple
+              @change="handleGalleryChange"
+              class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-lg file:border-0
+                file:text-sm file:font-medium
+                file:bg-zinc-100 dark:file:bg-zinc-800
+                file:text-zinc-700 dark:file:text-zinc-300
+                hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                file:cursor-pointer cursor-pointer"
+            />
+            <div v-if="galleryFiles.length > 0" class="text-xs text-zinc-500 dark:text-zinc-400">
+              Selected: {{ galleryFiles.length }} file(s)
+            </div>
+          </div>
+        </UFormField>
       </div>
 
       <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
@@ -166,7 +433,7 @@ function handleSubmit() {
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <UFormField label="Type">
-              <USelect v-model="stage.stage_type" :items="stageTypeOptions" value-key="value" class="w-full" size="sm" />
+              <USelect v-model="stage.stage_type" :items="stageTypeOptions" value-key="value" class="w-full" size="sm" @update:model-value="onStageTypeChange(stage)" />
             </UFormField>
             <UFormField label="Name">
               <UInput v-model="stage.stage_name" placeholder="Stage name" class="w-full" size="sm" required />
@@ -175,6 +442,10 @@ function handleSubmit() {
           <UFormField label="Description">
             <UInput v-model="stage.stage_description" placeholder="Optional description" class="w-full" size="sm" />
           </UFormField>
+          <SurveyQuestionPicker
+            v-if="stage.stage_type === 'survey'"
+            v-model="stage.config.profile_question_ids"
+          />
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <UFormField label="Reward ($)">
               <UInput v-model.number="stage.reward_amount" type="number" step="0.01" min="0" class="w-full" size="sm" />
@@ -186,12 +457,19 @@ function handleSubmit() {
         </div>
       </div>
 
-      <div v-if="createMutation.isError.value" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
-        {{ createMutation.error.value?.message || 'Failed to create mission' }}
+      <div v-if="createMutation.isError.value || uploadError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
+        {{ uploadError || createMutation.error.value?.message || 'Failed to create mission' }}
       </div>
 
       <div class="flex gap-3">
-        <UButton type="submit" color="primary" :loading="createMutation.isPending.value" size="lg">Create Mission</UButton>
+        <UButton
+          type="submit"
+          color="primary"
+          :loading="createMutation.isPending.value || uploadingLogo || uploadingHero || uploadingGallery"
+          size="lg"
+        >
+          Create Mission
+        </UButton>
         <NuxtLink to="/missions">
           <UButton variant="outline" size="lg">Cancel</UButton>
         </NuxtLink>

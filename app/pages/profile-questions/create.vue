@@ -9,6 +9,8 @@ const form = reactive({
   question_type: 'text',
   is_required: false,
   sort_order: 0,
+  category: 'demographics',
+  priority: 0,
 })
 
 const options = ref<string[]>([])
@@ -26,6 +28,15 @@ const typeOptions = [
   { label: 'Multi Select', value: 'multi_select' },
   { label: 'Number', value: 'number' },
   { label: 'Date', value: 'date' },
+]
+
+const categoryOptions = [
+  { label: 'Demographics', value: 'demographics' },
+  { label: 'Lifestyle', value: 'lifestyle' },
+  { label: 'Purchasing', value: 'purchasing' },
+  { label: 'Interests', value: 'interests' },
+  { label: 'Behavior', value: 'behavior' },
+  { label: 'Preferences', value: 'preferences' },
 ]
 
 const showOptions = computed(() => ['single_select', 'multi_select'].includes(form.question_type))
@@ -68,9 +79,15 @@ function handleSubmit() {
           </UFormField>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="flex items-end pb-1">
-            <UCheckbox v-model="form.is_required" label="Required" />
-          </div>
+          <UFormField label="Category">
+            <USelect v-model="form.category" :items="categoryOptions" value-key="value" class="w-full" />
+          </UFormField>
+          <UFormField label="Priority (0-5)">
+            <UInput v-model.number="form.priority" type="number" min="0" max="5" class="w-full" />
+          </UFormField>
+        </div>
+        <div class="flex items-center pb-1">
+          <UCheckbox v-model="form.is_required" label="Required" />
         </div>
       </div>
 

@@ -108,6 +108,8 @@ export interface Transaction {
   created_at: string
 }
 
+export type ProfileQuestionCategory = 'demographics' | 'lifestyle' | 'purchasing' | 'interests' | 'behavior' | 'preferences'
+
 export interface ProfileQuestion {
   id: string
   question_key: string
@@ -118,6 +120,8 @@ export interface ProfileQuestion {
   is_required: boolean
   journeys?: string[] | null
   is_active: boolean
+  category?: ProfileQuestionCategory | null
+  priority?: number | null
   created_at: string
 }
 
@@ -429,6 +433,8 @@ export interface CreateProfileQuestionRequest {
   options?: string[]
   is_required?: boolean
   sort_order?: number
+  category?: ProfileQuestionCategory
+  priority?: number
 }
 
 export interface UpdateProfileQuestionRequest {
@@ -438,4 +444,6 @@ export interface UpdateProfileQuestionRequest {
   is_required?: boolean
   sort_order?: number
   is_active?: boolean
+  category?: ProfileQuestionCategory
+  priority?: number
 }
