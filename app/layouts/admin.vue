@@ -10,6 +10,7 @@ const navItems = [
   { label: 'Users', to: '/users', icon: 'i-lucide-users' },
   { label: 'Segments', to: '/segments', icon: 'i-lucide-filter' },
   { label: 'Transactions', to: '/transactions', icon: 'i-lucide-receipt' },
+  { label: 'Withdrawals', to: '/withdrawals', icon: 'i-lucide-banknote' },
   { label: 'Payouts', to: '/payouts', icon: 'i-lucide-wallet' },
   { label: 'Notifications', to: '/notifications', icon: 'i-lucide-bell' },
   { label: 'Profile Questions', to: '/profile-questions', icon: 'i-lucide-clipboard-list' },

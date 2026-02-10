@@ -365,6 +365,41 @@ export interface ListPayoutsParams {
   minBalance?: number
 }
 
+// ── Withdrawals ──────────────────────────────────────────────
+
+export type WithdrawalStatus = 'pending' | 'approved' | 'rejected' | 'completed'
+
+export interface WithdrawalListItem {
+  id: string
+  user_id: string
+  amount: number
+  payment_method: 'paypal' | 'gift_card'
+  payment_details: Record<string, string>
+  status: WithdrawalStatus
+  admin_note?: string | null
+  reviewed_by?: string | null
+  reviewed_at?: string | null
+  created_at: string
+  updated_at: string
+  profiles?: {
+    id: string
+    email: string
+    first_name?: string | null
+    last_name?: string | null
+  }
+}
+
+export interface ListWithdrawalsParams {
+  page?: number
+  perPage?: number
+  status?: string
+}
+
+export interface UpdateWithdrawalRequest {
+  status: 'approved' | 'rejected' | 'completed'
+  admin_note?: string
+}
+
 export interface ListSegmentsParams {
   page?: number
   perPage?: number
