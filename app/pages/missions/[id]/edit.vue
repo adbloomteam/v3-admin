@@ -36,7 +36,7 @@ watch(mission, (res) => {
       description: res.description || '',
       brand_name: res.brand_name || '',
       mission_type: res.mission_type || 'affiliate',
-      category: res.category || '',
+      category: res.category || 'none',
       affiliate_url: res.affiliate_url || '',
       affiliate_network: res.affiliate_network || '',
       reward_amount: (res.reward_amount || 0) / 100,
@@ -74,7 +74,7 @@ const typeOptions = [
 ]
 
 const categoryOptions = [
-  { label: 'None', value: '' },
+  { label: 'None', value: 'none' },
   { label: 'Beauty', value: 'beauty' },
   { label: 'Food', value: 'food' },
   { label: 'Health', value: 'health' },
@@ -100,7 +100,7 @@ function handleSubmit() {
   if (!body.estimated_completion_minutes) delete body.estimated_completion_minutes
   if (!body.start_date) delete body.start_date
   if (!body.end_date) delete body.end_date
-  if (!body.category) delete body.category
+  if (!body.category || body.category === 'none') delete body.category
   updateMutation.mutate({ id, data: body }, {
     onSuccess: () => navigateTo('/missions'),
   })

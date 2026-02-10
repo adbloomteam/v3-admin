@@ -11,7 +11,7 @@ onMounted(async () => {
   } catch {}
 })
 const segmentOptions = computed(() => [
-  { label: 'Select a segment...', value: '' },
+  { label: 'Select a segment...', value: 'none' },
   ...segments.value,
 ])
 
@@ -19,14 +19,14 @@ const segmentOptions = computed(() => [
 const sendMutation = useSendNotification()
 const sendSuccess = ref('')
 const sendForm = reactive({
-  segmentId: '',
+  segmentId: 'none',
   subject: '',
   templateId: '',
   dataVariables: '',
 })
 
 function handleSend() {
-  if (!sendForm.segmentId || !sendForm.subject || !sendForm.templateId) return
+  if (sendForm.segmentId === 'none' || !sendForm.subject || !sendForm.templateId) return
   sendSuccess.value = ''
   const body: any = {
     segmentId: sendForm.segmentId,
@@ -87,7 +87,7 @@ const historyTotalPages = computed(() => Math.ceil(historyTotal.value / historyP
           </UFormField>
         </div>
         <div class="flex items-center gap-3">
-          <UButton type="submit" color="primary" size="sm" :loading="sendMutation.isPending.value" :disabled="!sendForm.segmentId || !sendForm.subject || !sendForm.templateId">
+          <UButton type="submit" color="primary" size="sm" :loading="sendMutation.isPending.value" :disabled="sendForm.segmentId === 'none' || !sendForm.subject || !sendForm.templateId">
             Send Notification
           </UButton>
           <span v-if="sendSuccess" class="text-sm text-emerald-600 dark:text-emerald-400">{{ sendSuccess }}</span>

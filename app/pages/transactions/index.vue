@@ -5,10 +5,10 @@ const page = ref(1)
 const perPage = 20
 const search = ref('')
 const debouncedSearch = refDebounced(search, 300)
-const typeFilter = ref('')
+const typeFilter = ref('all')
 
 const typeOptions = [
-  { label: 'All Types', value: '' },
+  { label: 'All Types', value: 'all' },
   { label: 'Mission Reward', value: 'mission_reward' },
   { label: 'Referral Bonus', value: 'referral_bonus' },
   { label: 'Admin Credit', value: 'admin_credit' },
@@ -21,7 +21,7 @@ const queryParams = computed(() => ({
   page: page.value,
   perPage,
   search: debouncedSearch.value || undefined,
-  type: typeFilter.value || undefined,
+  type: typeFilter.value === 'all' ? undefined : typeFilter.value,
 }))
 
 const { data, isPending, isError, error } = useTransactionsQuery(queryParams)

@@ -5,11 +5,11 @@ const page = ref(1)
 const perPage = 20
 const search = ref('')
 const debouncedSearch = refDebounced(search, 300)
-const statusFilter = ref('')
-const typeFilter = ref('')
+const statusFilter = ref('all')
+const typeFilter = ref('all')
 
 const statusOptions = [
-  { label: 'All Statuses', value: '' },
+  { label: 'All Statuses', value: 'all' },
   { label: 'Draft', value: 'draft' },
   { label: 'Active', value: 'active' },
   { label: 'Paused', value: 'paused' },
@@ -18,7 +18,7 @@ const statusOptions = [
 ]
 
 const typeOptions = [
-  { label: 'All Types', value: '' },
+  { label: 'All Types', value: 'all' },
   { label: 'Affiliate', value: 'affiliate' },
   { label: 'Survey', value: 'survey' },
   { label: 'CPG', value: 'cpg' },
@@ -31,8 +31,8 @@ const queryParams = computed(() => ({
   page: page.value,
   perPage,
   search: debouncedSearch.value || undefined,
-  status: statusFilter.value || undefined,
-  type: typeFilter.value || undefined,
+  status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+  type: typeFilter.value === 'all' ? undefined : typeFilter.value,
 }))
 
 const { data, isPending, isError, error } = useMissionsQuery(queryParams)
