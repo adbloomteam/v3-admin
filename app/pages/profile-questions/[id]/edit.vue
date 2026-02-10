@@ -90,7 +90,7 @@ function handleSubmit() {
           <UFormField label="Question Text" required>
             <UInput v-model="form.question_text" class="w-full" required />
           </UFormField>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Type" required>
               <USelect v-model="form.question_type" :items="typeOptions" value-key="value" class="w-full" />
             </UFormField>
@@ -98,7 +98,7 @@ function handleSubmit() {
               <UInput v-model.number="form.sort_order" type="number" min="0" class="w-full" />
             </UFormField>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="flex items-end pb-1">
               <UCheckbox v-model="form.is_required" label="Required" />
             </div>

@@ -120,7 +120,7 @@ async function preview() {
           <UFormField label="Description">
             <UTextarea v-model="form.description" :rows="2" class="w-full" />
           </UFormField>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Type">
               <USelect v-model="form.segment_type" :items="typeOptions" value-key="value" class="w-full" />
             </UFormField>
@@ -141,7 +141,7 @@ async function preview() {
               <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Rule {{ i + 1 }}</span>
               <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeRule(i)" />
             </div>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <UFormField label="Field">
                 <USelect v-model="rule.field" :items="fieldOptions" value-key="value" class="w-full" size="sm" />
               </UFormField>

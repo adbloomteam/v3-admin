@@ -80,7 +80,7 @@ function adjustCredits() {
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 mb-6" v-if="data.wallet">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6" v-if="data.wallet">
         <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-center">
           <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(data.wallet.available_credits) }}</p>
           <p class="text-xs text-zinc-500 dark:text-zinc-400">Available</p>
@@ -95,13 +95,13 @@ function adjustCredits() {
         <h3 class="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-4">Adjust Credits</h3>
         <form @submit.prevent="adjustCredits" class="flex flex-wrap items-end gap-3">
           <UFormField label="Amount ($)">
-            <UInput v-model.number="creditForm.amount" type="number" step="0.01" min="0.01" class="w-32" size="sm" required />
+            <UInput v-model.number="creditForm.amount" type="number" step="0.01" min="0.01" class="w-full sm:w-32" size="sm" required />
           </UFormField>
           <UFormField label="Type">
-            <USelect v-model="creditForm.type" :items="creditTypeOptions" value-key="value" class="w-40" size="sm" />
+            <USelect v-model="creditForm.type" :items="creditTypeOptions" value-key="value" class="w-full sm:w-40" size="sm" />
           </UFormField>
           <UFormField label="Reason">
-            <UInput v-model="creditForm.reason" placeholder="Optional reason" class="w-48" size="sm" />
+            <UInput v-model="creditForm.reason" placeholder="Optional reason" class="w-full sm:w-48" size="sm" />
           </UFormField>
           <UButton type="submit" color="primary" size="sm" :loading="creditMutation.isPending.value">Apply</UButton>
         </form>

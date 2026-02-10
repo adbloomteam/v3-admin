@@ -130,7 +130,7 @@ function updateStatus(status: string) {
     </div>
 
     <template v-else-if="mission">
-      <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 text-center">
           <p class="text-xl font-bold text-zinc-900 dark:text-zinc-100">{{ mission.participant_count ?? 0 }}</p>
           <p class="text-xs text-zinc-500 dark:text-zinc-400">Participants</p>
@@ -162,7 +162,7 @@ function updateStatus(status: string) {
           <UFormField label="Description" required>
             <UTextarea v-model="form.description" :rows="3" class="w-full" required />
           </UFormField>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Type">
               <USelect v-model="form.mission_type" :items="typeOptions" value-key="value" class="w-full" />
             </UFormField>
@@ -170,7 +170,7 @@ function updateStatus(status: string) {
               <USelect v-model="form.category" :items="categoryOptions" value-key="value" class="w-full" />
             </UFormField>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Brand Name">
               <UInput v-model="form.brand_name" class="w-full" />
             </UFormField>
@@ -182,7 +182,7 @@ function updateStatus(status: string) {
 
         <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
           <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Affiliate & Limits</h2>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Affiliate URL">
               <UInput v-model="form.affiliate_url" type="url" class="w-full" />
             </UFormField>
@@ -190,7 +190,7 @@ function updateStatus(status: string) {
               <UInput v-model="form.affiliate_network" class="w-full" />
             </UFormField>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Max Participants">
               <UInput v-model.number="form.max_participants" type="number" min="1" class="w-full" />
             </UFormField>
@@ -198,7 +198,7 @@ function updateStatus(status: string) {
               <UInput v-model.number="form.estimated_completion_minutes" type="number" min="1" class="w-full" />
             </UFormField>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Start Date">
               <UInput v-model="form.start_date" type="datetime-local" class="w-full" />
             </UFormField>
@@ -228,7 +228,7 @@ function updateStatus(status: string) {
               <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">Stage {{ i + 1 }}</span>
               <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeStage(i)" />
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <UFormField label="Type">
                 <USelect v-model="stage.stage_type" :items="stageTypeOptions" value-key="value" class="w-full" size="sm" />
               </UFormField>
@@ -239,7 +239,7 @@ function updateStatus(status: string) {
             <UFormField label="Description">
               <UInput v-model="stage.stage_description" class="w-full" size="sm" />
             </UFormField>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <UFormField label="Reward ($)">
                 <UInput v-model.number="stage.reward_amount" type="number" step="0.01" min="0" class="w-full" size="sm" />
               </UFormField>

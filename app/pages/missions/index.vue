@@ -70,9 +70,9 @@ function updateStatus(id: string, status: string) {
     </div>
 
     <div class="flex flex-wrap gap-3 mb-4">
-      <UInput v-model="search" placeholder="Search missions..." icon="i-lucide-search" class="w-64" size="sm" />
-      <USelect v-model="statusFilter" :items="statusOptions" value-key="value" class="w-40" size="sm" />
-      <USelect v-model="typeFilter" :items="typeOptions" value-key="value" class="w-40" size="sm" />
+      <UInput v-model="search" placeholder="Search missions..." icon="i-lucide-search" class="w-full sm:w-64" size="sm" />
+      <USelect v-model="statusFilter" :items="statusOptions" value-key="value" class="w-full sm:w-40" size="sm" />
+      <USelect v-model="typeFilter" :items="typeOptions" value-key="value" class="w-full sm:w-40" size="sm" />
     </div>
 
     <div v-if="isError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3 mb-4">
