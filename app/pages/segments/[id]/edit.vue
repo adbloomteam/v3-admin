@@ -1,0 +1,206 @@
+<script setup lang="ts">
+definePageMeta({ layout: 'admin' })
+
+const route = useRoute()
+const id = route.params.id as string
+const { apiFetch } = useApi()
+const loading = ref(true)
+const saving = ref(false)
+const error = ref('')
+
+const form = reactive({
+  name: '',
+  description: '',
+  segment_type: 'dynamic',
+  is_active: true,
+})
+
+const rules = ref<{ field: string; operator: string; value: string }[]>([])
+const previewCount = ref<number | null>(null)
+const previewUsers = ref<any[]>([])
+const previewing = ref(false)
+
+onMounted(async () => {
+  try {
+    const res = await apiFetch<any>(`/segments/${id}`)
+    Object.assign(form, {
+      name: res.name || '',
+      description: res.description || '',
+      segment_type: res.segment_type || 'dynamic',
+      is_active: res.is_active !== false,
+    })
+    if (res.rules?.conditions) {
+      rules.value = res.rules.conditions.map((c: any) => ({
+        field: c.field || 'state',
+        operator: c.operator || 'eq',
+        value: c.value || '',
+      }))
+    }
+  } catch (e: any) {
+    error.value = e?.data?.error || 'Failed to load segment'
+  } finally {
+    loading.value = false
+  }
+})
+
+function addRule() {
+  rules.value.push({ field: 'state', operator: 'eq', value: '' })
+}
+function removeRule(i: number) {
+  rules.value.splice(i, 1)
+}
+
+const fieldOptions = [
+  { label: 'State', value: 'state' },
+  { label: 'Country', value: 'country' },
+  { label: 'Zipcode', value: 'zipcode' },
+  { label: 'Role', value: 'role' },
+]
+
+const operatorOptions = [
+  { label: 'Equals', value: 'eq' },
+  { label: 'Not equals', value: 'neq' },
+  { label: 'Contains', value: 'contains' },
+  { label: 'In', value: 'in' },
+]
+
+const typeOptions = [
+  { label: 'Dynamic', value: 'dynamic' },
+  { label: 'Static', value: 'static' },
+]
+
+async function handleSubmit() {
+  saving.value = true
+  error.value = ''
+  try {
+    const body: any = { ...form }
+    if (rules.value.length > 0) {
+      body.rules = { conditions: rules.value }
+    }
+    await apiFetch(`/segments/${id}`, { method: 'PUT', body })
+    navigateTo('/segments')
+  } catch (e: any) {
+    error.value = e?.data?.error || 'Failed to update segment'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function preview() {
+  previewing.value = true
+  try {
+    const res = await apiFetch<any>(`/segments/${id}/preview`)
+    previewCount.value = res.count ?? 0
+    previewUsers.value = res.sample || []
+  } catch (e: any) {
+    alert(e?.data?.error || 'Failed to preview')
+  } finally {
+    previewing.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="max-w-3xl">
+    <div class="flex items-center gap-3 mb-6">
+      <NuxtLink to="/segments">
+        <UButton variant="ghost" size="xs" icon="i-lucide-arrow-left" />
+      </NuxtLink>
+      <h1 class="text-2xl font-bold">Edit Segment</h1>
+    </div>
+
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
+    </div>
+
+    <template v-else-if="!error || form.name">
+      <form @submit.prevent="handleSubmit" class="space-y-6">
+        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+          <h2 class="text-base font-semibold">Segment Info</h2>
+          <UFormField label="Name" required>
+            <UInput v-model="form.name" class="w-full" required />
+          </UFormField>
+          <UFormField label="Description">
+            <UTextarea v-model="form.description" :rows="2" class="w-full" />
+          </UFormField>
+          <div class="grid grid-cols-2 gap-4">
+            <UFormField label="Type">
+              <USelect v-model="form.segment_type" :items="typeOptions" value-key="value" class="w-full" />
+            </UFormField>
+            <div class="flex items-end pb-1">
+              <UCheckbox v-model="form.is_active" label="Active" />
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold">Rules</h2>
+            <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addRule">Add Rule</UButton>
+          </div>
+          <div v-if="!rules.length" class="text-sm text-zinc-400">No rules configured</div>
+          <div v-for="(rule, i) in rules" :key="i" class="border border-zinc-200 rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-zinc-700">Rule {{ i + 1 }}</span>
+              <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeRule(i)" />
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <UFormField label="Field">
+                <USelect v-model="rule.field" :items="fieldOptions" value-key="value" class="w-full" size="sm" />
+              </UFormField>
+              <UFormField label="Operator">
+                <USelect v-model="rule.operator" :items="operatorOptions" value-key="value" class="w-full" size="sm" />
+              </UFormField>
+              <UFormField label="Value">
+                <UInput v-model="rule.value" class="w-full" size="sm" required />
+              </UFormField>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="bg-white rounded-xl border border-zinc-200 p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-semibold">Preview</h2>
+            <UButton variant="outline" size="xs" icon="i-lucide-eye" :loading="previewing" @click="preview">Preview Matches</UButton>
+          </div>
+          <div v-if="previewCount !== null">
+            <p class="text-sm text-zinc-700 mb-3">
+              <span class="font-semibold text-lg">{{ previewCount }}</span> users match this segment
+            </p>
+            <div v-if="previewUsers.length" class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-zinc-100">
+                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 uppercase">Email</th>
+                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 uppercase">Name</th>
+                    <th class="text-left px-3 py-2 text-xs font-medium text-zinc-500 uppercase">Location</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="u in previewUsers" :key="u.id" class="border-b border-zinc-50 last:border-0">
+                    <td class="px-3 py-2 text-zinc-700">{{ u.email }}</td>
+                    <td class="px-3 py-2 text-zinc-500">{{ [u.first_name, u.last_name].filter(Boolean).join(' ') || '—' }}</td>
+                    <td class="px-3 py-2 text-zinc-500">{{ [u.state, u.country].filter(Boolean).join(', ') || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div v-else class="text-sm text-zinc-400">Click "Preview Matches" to see how many users match this segment.</div>
+        </div>
+
+        <div v-if="error" class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+
+        <div class="flex gap-3">
+          <UButton type="submit" color="primary" :loading="saving" size="lg">Save Changes</UButton>
+          <NuxtLink to="/segments">
+            <UButton variant="outline" size="lg">Cancel</UButton>
+          </NuxtLink>
+        </div>
+      </form>
+    </template>
+
+    <div v-else class="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{{ error }}</div>
+  </div>
+</template>
