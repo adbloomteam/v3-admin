@@ -18,6 +18,7 @@ export default defineNuxtConfig({
       'composables',
       'composables/queries',
       'composables/mutations',
+      'services/api',
     ],
   },
 
