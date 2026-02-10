@@ -23,14 +23,15 @@ const previewing = ref(false)
 onMounted(async () => {
   try {
     const res = await apiFetch<any>(`/segments/${id}`)
+    const seg = res.segment || res
     Object.assign(form, {
-      name: res.name || '',
-      description: res.description || '',
-      segment_type: res.segment_type || 'dynamic',
-      is_active: res.is_active !== false,
+      name: seg.name || '',
+      description: seg.description || '',
+      segment_type: seg.segment_type || 'dynamic',
+      is_active: seg.is_active !== false,
     })
-    if (res.rules?.conditions) {
-      rules.value = res.rules.conditions.map((c: any) => ({
+    if (seg.rules?.conditions) {
+      rules.value = seg.rules.conditions.map((c: any) => ({
         field: c.field || 'state',
         operator: c.operator || 'eq',
         value: c.value || '',
@@ -91,7 +92,7 @@ async function preview() {
   try {
     const res = await apiFetch<any>(`/segments/${id}/preview`)
     previewCount.value = res.count ?? 0
-    previewUsers.value = res.sample || []
+    previewUsers.value = res.users || []
   } catch (e: any) {
     alert(e?.data?.error || 'Failed to preview')
   } finally {

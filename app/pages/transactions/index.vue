@@ -86,8 +86,8 @@ onMounted(loadTransactions)
           <tbody>
             <tr v-for="tx in transactions" :key="tx.id" class="border-b border-zinc-50 last:border-0 hover:bg-zinc-50">
               <td class="px-5 py-3">
-                <NuxtLink v-if="tx.user_id" :to="`/users/${tx.user_id}`" class="text-zinc-900 hover:text-rose-600 font-medium">
-                  {{ tx.profiles?.email || tx.user_id?.slice(0, 8) }}
+                <NuxtLink v-if="tx.user_id" :to="`/users/${tx.user_id}`" class="text-zinc-900 hover:text-rose-600 font-medium text-xs font-mono">
+                  {{ tx.user_id.slice(0, 8) }}...
                 </NuxtLink>
                 <span v-else class="text-zinc-400">—</span>
               </td>

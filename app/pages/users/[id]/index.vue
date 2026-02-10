@@ -100,18 +100,14 @@ async function adjustCredits() {
       </div>
 
       <!-- Wallet -->
-      <div class="grid grid-cols-3 gap-4 mb-6" v-if="data.wallet">
+      <div class="grid grid-cols-2 gap-4 mb-6" v-if="data.wallet">
         <div class="bg-white rounded-xl border border-zinc-200 p-4 text-center">
           <p class="text-xl font-bold text-emerald-600">{{ formatCurrency(data.wallet.available_credits) }}</p>
           <p class="text-xs text-zinc-500">Available</p>
         </div>
         <div class="bg-white rounded-xl border border-zinc-200 p-4 text-center">
-          <p class="text-xl font-bold text-amber-600">{{ formatCurrency(data.wallet.pending_credits) }}</p>
-          <p class="text-xs text-zinc-500">Pending</p>
-        </div>
-        <div class="bg-white rounded-xl border border-zinc-200 p-4 text-center">
-          <p class="text-xl font-bold">{{ formatCurrency(data.wallet.total_earned) }}</p>
-          <p class="text-xs text-zinc-500">Total Earned</p>
+          <p class="text-xl font-bold text-zinc-700">{{ formatCurrency(data.wallet.lifetime_earned) }}</p>
+          <p class="text-xs text-zinc-500">Lifetime Earned</p>
         </div>
       </div>
 

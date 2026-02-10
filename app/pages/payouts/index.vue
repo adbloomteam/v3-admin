@@ -84,9 +84,7 @@ async function exportCsv() {
           <thead>
             <tr class="border-b border-zinc-100">
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">User</th>
-              <th class="text-right px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Available</th>
-              <th class="text-right px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Pending</th>
-              <th class="text-right px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Total Earned</th>
+              <th class="text-right px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Available Credits</th>
             </tr>
           </thead>
           <tbody>
@@ -100,8 +98,6 @@ async function exportCsv() {
                 </p>
               </td>
               <td class="px-5 py-3 text-right font-medium text-emerald-600">{{ formatCurrency(p.available_credits) }}</td>
-              <td class="px-5 py-3 text-right text-amber-600">{{ formatCurrency(p.pending_credits) }}</td>
-              <td class="px-5 py-3 text-right text-zinc-700">{{ formatCurrency(p.total_earned) }}</td>
             </tr>
           </tbody>
         </table>

@@ -30,7 +30,7 @@ const segmentOptions = computed(() => [
 ])
 
 async function handleSend() {
-  if (!sendForm.segmentId || !sendForm.subject) return
+  if (!sendForm.segmentId || !sendForm.subject || !sendForm.templateId) return
   sending.value = true
   sendError.value = ''
   sendSuccess.value = ''
@@ -38,8 +38,8 @@ async function handleSend() {
     const body: any = {
       segmentId: sendForm.segmentId,
       subject: sendForm.subject,
+      templateId: sendForm.templateId,
     }
-    if (sendForm.templateId) body.templateId = sendForm.templateId
     if (sendForm.dataVariables) {
       try { body.dataVariables = JSON.parse(sendForm.dataVariables) } catch {}
     }
@@ -95,15 +95,15 @@ watch(historyPage, loadHistory)
           </UFormField>
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <UFormField label="Template ID">
-            <UInput v-model="sendForm.templateId" placeholder="Optional template ID" class="w-full" />
+          <UFormField label="Template ID" required>
+            <UInput v-model="sendForm.templateId" placeholder="Loops template ID" class="w-full" required />
           </UFormField>
           <UFormField label="Data Variables (JSON)">
             <UInput v-model="sendForm.dataVariables" placeholder='{"key": "value"}' class="w-full" />
           </UFormField>
         </div>
         <div class="flex items-center gap-3">
-          <UButton type="submit" color="primary" size="sm" :loading="sending" :disabled="!sendForm.segmentId || !sendForm.subject">
+          <UButton type="submit" color="primary" size="sm" :loading="sending" :disabled="!sendForm.segmentId || !sendForm.subject || !sendForm.templateId">
             Send Notification
           </UButton>
           <span v-if="sendSuccess" class="text-sm text-emerald-600">{{ sendSuccess }}</span>
@@ -130,7 +130,7 @@ watch(historyPage, loadHistory)
             <tr class="border-b border-zinc-100">
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Subject</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Segment</th>
-              <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Status</th>
+              <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Results</th>
               <th class="text-right px-5 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">Sent</th>
             </tr>
           </thead>
@@ -139,9 +139,10 @@ watch(historyPage, loadHistory)
               <td class="px-5 py-3 text-zinc-900 font-medium">{{ n.subject || '—' }}</td>
               <td class="px-5 py-3 text-zinc-500">{{ n.segments?.name || n.segment_id?.slice(0, 8) || '—' }}</td>
               <td class="px-5 py-3">
-                <UBadge :color="n.status === 'sent' ? 'success' : n.status === 'failed' ? 'error' : 'neutral'" variant="subtle" size="sm">
-                  {{ n.status || 'pending' }}
-                </UBadge>
+                <span class="text-xs text-zinc-600">
+                  {{ n.success_count || 0 }}/{{ n.recipients_count || 0 }} sent
+                </span>
+                <span v-if="n.fail_count" class="text-xs text-red-500 ml-1">({{ n.fail_count }} failed)</span>
               </td>
               <td class="px-5 py-3 text-right text-zinc-400">{{ formatDateTime(n.created_at) }}</td>
             </tr>

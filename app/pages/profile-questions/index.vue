@@ -33,10 +33,10 @@ async function deleteQuestion(id: string) {
 
 const questionTypeLabel: Record<string, string> = {
   text: 'Text',
-  select: 'Select',
+  single_select: 'Select',
   multi_select: 'Multi Select',
-  boolean: 'Yes/No',
   number: 'Number',
+  date: 'Date',
 }
 </script>
 

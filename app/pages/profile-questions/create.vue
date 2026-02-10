@@ -25,10 +25,10 @@ function removeOption(i: number) {
 
 const typeOptions = [
   { label: 'Text', value: 'text' },
-  { label: 'Select', value: 'select' },
+  { label: 'Select', value: 'single_select' },
   { label: 'Multi Select', value: 'multi_select' },
-  { label: 'Yes/No', value: 'boolean' },
   { label: 'Number', value: 'number' },
+  { label: 'Date', value: 'date' },
 ]
 
 const categoryOptions = [
@@ -39,7 +39,7 @@ const categoryOptions = [
   { label: 'Lifestyle', value: 'lifestyle' },
 ]
 
-const showOptions = computed(() => ['select', 'multi_select'].includes(form.question_type))
+const showOptions = computed(() => ['single_select', 'multi_select'].includes(form.question_type))
 
 async function handleSubmit() {
   saving.value = true
