@@ -4,7 +4,7 @@ export function useDashboardService() {
   const { apiFetch } = useApi()
 
   async function getStats(): Promise<DashboardStats> {
-    return apiFetch<DashboardStats>('/dashboard')
+    return apiFetch<DashboardStats>('/dashboard/stats')
   }
 
   return { getStats }
