@@ -104,11 +104,13 @@ const historyTotalPages = computed(() => Math.ceil(historyTotal.value / historyP
         <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Notification History</h2>
       </div>
 
-      <div v-if="loadingHistory" class="flex items-center justify-center py-20">
-        <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
-      </div>
+      <TablesTableSkeleton v-if="loadingHistory" :cols="4" :rows="4" />
 
-      <div v-else-if="!history.length" class="px-5 py-12 text-center text-sm text-zinc-400">No notifications sent yet</div>
+      <div v-else-if="!history.length" class="px-5 py-16 text-center">
+        <UIcon name="i-lucide-bell" class="size-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">No notifications sent yet</p>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500">Use the form above to send your first notification.</p>
+      </div>
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">

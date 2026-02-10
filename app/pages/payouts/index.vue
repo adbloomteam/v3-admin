@@ -20,7 +20,9 @@ const totalPages = computed(() => Math.ceil(total.value / perPage))
 
 watch(debouncedMinBalance, () => { page.value = 1 })
 
+const exporting = ref(false)
 async function exportCsv() {
+  exporting.value = true
   try {
     const config = useRuntimeConfig()
     const token = useCookie('admin_auth_token').value
@@ -39,6 +41,8 @@ async function exportCsv() {
   } catch {
     const toast = useToast()
     toast.add({ title: 'Failed to export CSV', color: 'error' })
+  } finally {
+    exporting.value = false
   }
 }
 </script>
@@ -47,7 +51,7 @@ async function exportCsv() {
   <div>
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Payouts</h1>
-      <UButton variant="outline" size="sm" icon="i-lucide-download" @click="exportCsv">Export CSV</UButton>
+      <UButton variant="outline" size="sm" icon="i-lucide-download" :loading="exporting" @click="exportCsv">Export CSV</UButton>
     </div>
 
     <div class="flex flex-wrap gap-3 mb-4">
@@ -59,11 +63,13 @@ async function exportCsv() {
     </div>
 
     <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-      <div v-if="isPending" class="flex items-center justify-center py-20">
-        <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
-      </div>
+      <TablesTableSkeleton v-if="isPending" :cols="2" :rows="5" />
 
-      <div v-else-if="!payouts.length" class="px-5 py-12 text-center text-sm text-zinc-400">No eligible payouts found</div>
+      <div v-else-if="!payouts.length" class="px-5 py-16 text-center">
+        <UIcon name="i-lucide-wallet" class="size-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">No eligible payouts</p>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500">No users currently meet the minimum payout threshold.</p>
+      </div>
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">

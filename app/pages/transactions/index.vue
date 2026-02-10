@@ -50,11 +50,13 @@ watch(debouncedSearch, () => { page.value = 1 })
     </div>
 
     <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-      <div v-if="isPending" class="flex items-center justify-center py-20">
-        <UIcon name="i-lucide-loader-2" class="size-6 animate-spin text-zinc-400" />
-      </div>
+      <TablesTableSkeleton v-if="isPending" :cols="5" :rows="5" />
 
-      <div v-else-if="!transactions.length" class="px-5 py-12 text-center text-sm text-zinc-400">No transactions found</div>
+      <div v-else-if="!transactions.length" class="px-5 py-16 text-center">
+        <UIcon name="i-lucide-receipt" class="size-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-1">No transactions found</p>
+        <p class="text-xs text-zinc-400 dark:text-zinc-500">Try adjusting your search or filters.</p>
+      </div>
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
