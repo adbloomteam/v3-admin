@@ -121,7 +121,6 @@ export interface ProfileQuestion {
   journeys?: string[] | null
   is_active: boolean
   category?: ProfileQuestionCategory | null
-  priority?: number | null
   created_at: string
 }
 
@@ -434,7 +433,6 @@ export interface CreateProfileQuestionRequest {
   is_required?: boolean
   sort_order?: number
   category?: ProfileQuestionCategory
-  priority?: number
 }
 
 export interface UpdateProfileQuestionRequest {
@@ -445,5 +443,4 @@ export interface UpdateProfileQuestionRequest {
   sort_order?: number
   is_active?: boolean
   category?: ProfileQuestionCategory
-  priority?: number
 }

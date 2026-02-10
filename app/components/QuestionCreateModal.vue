@@ -14,9 +14,7 @@ const form = reactive({
   question_text: '',
   question_type: 'single_select',
   is_required: false,
-  sort_order: 0,
   category: 'demographics',
-  priority: 0,
 })
 
 const options = ref<string[]>([])
@@ -53,9 +51,7 @@ function resetForm() {
     question_text: '',
     question_type: 'single_select',
     is_required: false,
-    sort_order: 0,
     category: 'demographics',
-    priority: 0,
   })
   options.value = []
 }
@@ -102,15 +98,6 @@ function handleClose() {
             </UFormField>
             <UFormField label="Category">
               <USelect v-model="form.category" :items="categoryOptions" value-key="value" class="w-full" size="sm" />
-            </UFormField>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <UFormField label="Priority (0-5)">
-              <UInput v-model.number="form.priority" type="number" min="0" max="5" class="w-full" size="sm" />
-            </UFormField>
-            <UFormField label="Sort Order">
-              <UInput v-model.number="form.sort_order" type="number" min="0" class="w-full" size="sm" />
             </UFormField>
           </div>
 

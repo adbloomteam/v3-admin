@@ -78,7 +78,7 @@ const filteredQuestions = computed(() => {
     </div>
 
     <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-      <TablesTableSkeleton v-if="isPending" :cols="7" :rows="4" />
+      <TablesTableSkeleton v-if="isPending" :cols="6" :rows="4" />
 
       <div v-else-if="!questions.length" class="px-5 py-16 text-center">
         <UIcon name="i-lucide-list-checks" class="size-8 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
@@ -93,7 +93,6 @@ const filteredQuestions = computed(() => {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-zinc-100 dark:border-zinc-800">
-              <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Order</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Question</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Key</th>
               <th class="text-left px-5 py-3 text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">Category</th>
@@ -104,7 +103,6 @@ const filteredQuestions = computed(() => {
           </thead>
           <tbody>
             <tr v-for="q in filteredQuestions" :key="q.id" class="border-b border-zinc-50 dark:border-zinc-800/50 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-              <td class="px-5 py-3 text-zinc-500 dark:text-zinc-400">{{ q.sort_order ?? '—' }}</td>
               <td class="px-5 py-3">
                 <NuxtLink :to="`/profile-questions/${q.id}/edit`" class="font-medium text-zinc-900 dark:text-zinc-100 hover:text-rose-600 dark:hover:text-rose-400">
                   {{ q.question_text }}

@@ -12,9 +12,7 @@ const form = reactive({
   question_text: '',
   question_type: 'text',
   is_required: false,
-  sort_order: 0,
   category: 'demographics',
-  priority: 0,
 })
 
 const options = ref<string[]>([])
@@ -28,9 +26,7 @@ watch(question, (res) => {
       question_text: q.question_text || '',
       question_type: q.question_type || 'text',
       is_required: !!q.is_required,
-      sort_order: q.sort_order ?? 0,
       category: q.category || 'demographics',
-      priority: q.priority ?? 0,
     })
     if (Array.isArray(q.options)) {
       options.value = [...q.options]
@@ -107,16 +103,8 @@ function handleSubmit() {
             <UFormField label="Type" required>
               <USelect v-model="form.question_type" :items="typeOptions" value-key="value" class="w-full" />
             </UFormField>
-            <UFormField label="Sort Order">
-              <UInput v-model.number="form.sort_order" type="number" min="0" class="w-full" />
-            </UFormField>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <UFormField label="Category">
               <USelect v-model="form.category" :items="categoryOptions" value-key="value" class="w-full" />
-            </UFormField>
-            <UFormField label="Priority (0-5)">
-              <UInput v-model.number="form.priority" type="number" min="0" max="5" class="w-full" />
             </UFormField>
           </div>
           <div class="flex items-center pb-1">
