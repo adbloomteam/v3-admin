@@ -13,6 +13,14 @@ export default defineNuxtConfig({
     preference: 'system',
   },
 
+  imports: {
+    dirs: [
+      'composables',
+      'composables/queries',
+      'composables/mutations',
+    ],
+  },
+
   runtimeConfig: {
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
