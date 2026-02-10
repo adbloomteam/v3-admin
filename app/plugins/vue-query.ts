@@ -3,9 +3,11 @@ import { VueQueryPlugin, QueryClient, MutationCache, type VueQueryPluginOptions 
 export default defineNuxtPlugin((nuxtApp) => {
   const mutationCache = new MutationCache({
     onError: (error: any) => {
-      const toast = useToast()
-      const message = error?.data?.error || error?.message || 'Something went wrong'
-      toast.add({ title: 'Error', description: message, color: 'error' })
+      if (import.meta.client) {
+        const toast = useToast()
+        const message = error?.data?.error || error?.message || 'Something went wrong'
+        toast.add({ title: 'Error', description: message, color: 'error' })
+      }
     },
   })
 
