@@ -23,6 +23,12 @@ export interface Profile {
   role: UserRole
   pq_answers?: Record<string, unknown> | null
   onboarding_completed: boolean
+  profile_completion_pct?: number | null
+  signup_source?: string | null
+  signup_utm_campaign?: string | null
+  signup_utm_medium?: string | null
+  signup_utm_source?: string | null
+  last_login_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -91,13 +97,15 @@ export interface Wallet {
 export interface Transaction {
   id: string
   user_id: string
+  wallet_id: string
   amount: number
+  balance_after: number
   transaction_type: TransactionType
   description?: string | null
-  processed_by?: string | null
   mission_id?: string | null
+  conversion_id?: string | null
+  processed_by?: string | null
   created_at: string
-  updated_at: string
 }
 
 export interface ProfileQuestion {
@@ -145,6 +153,60 @@ export interface UserEvent {
   stage_id?: string | null
   event_type: string
   event_data?: Record<string, unknown> | null
+  created_at: string
+}
+
+// ── Tracking & Logging ───────────────────────────────────────
+
+export interface ClickLog {
+  id: string
+  click_id: string
+  user_id: string
+  mission_id: string
+  stage_id?: string | null
+  redirect_url: string
+  ip_address?: string | null
+  user_agent?: string | null
+  created_at: string
+}
+
+export interface PostbackLog {
+  id: string
+  click_id?: string | null
+  transaction_id?: string | null
+  network: string
+  status: string
+  match_details?: string | null
+  raw_query_params: Record<string, unknown>
+  raw_headers?: Record<string, unknown> | null
+  ip_address?: string | null
+  received_at: string
+}
+
+export interface Conversion {
+  id: string
+  postback_id: string
+  click_id: string
+  user_id: string
+  mission_id: string
+  transaction_id?: string | null
+  network: string
+  payout: number
+  reward: number
+  status: string
+  credit_transaction_id?: string | null
+  credited_at?: string | null
+  created_at: string
+}
+
+export interface AdminAuditLog {
+  id: string
+  admin_id: string
+  action: string
+  entity_type?: string | null
+  entity_id?: string | null
+  details?: Record<string, unknown> | null
+  ip_address?: string | null
   created_at: string
 }
 
