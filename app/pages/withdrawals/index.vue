@@ -5,12 +5,12 @@ definePageMeta({ layout: 'admin' })
 
 const page = ref(1)
 const perPage = 20
-const statusFilter = ref('')
+const statusFilter = ref('all')
 
 const queryParams = computed(() => ({
   page: page.value,
   perPage,
-  status: statusFilter.value || undefined,
+  status: statusFilter.value === 'all' ? undefined : statusFilter.value,
 }))
 
 const { data, isPending, isError, error } = useWithdrawalsQuery(queryParams)
@@ -65,7 +65,7 @@ async function exportCsv() {
     const config = useRuntimeConfig()
     const token = useCookie('admin_auth_token').value
     const params = new URLSearchParams()
-    if (statusFilter.value) params.set('status', statusFilter.value)
+    if (statusFilter.value && statusFilter.value !== 'all') params.set('status', statusFilter.value)
     const res = await fetch(`${config.public.apiBaseUrl}/api/v1/admin/withdrawals/export/csv?${params}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -73,7 +73,7 @@ async function exportCsv() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `withdrawals-${statusFilter.value || 'all'}-export.csv`
+    a.download = `withdrawals-${statusFilter.value}-export.csv`
     a.click()
     URL.revokeObjectURL(url)
   } catch {
@@ -112,7 +112,7 @@ function paymentLabel(w: WithdrawalListItem): string {
       <USelect
         v-model="statusFilter"
         :items="[
-          { label: 'All Statuses', value: '' },
+          { label: 'All Statuses', value: 'all' },
           { label: 'Pending', value: 'pending' },
           { label: 'Approved', value: 'approved' },
           { label: 'Rejected', value: 'rejected' },
