@@ -3,9 +3,13 @@ import { defineStore } from 'pinia'
 export const useAuthStore = defineStore('auth', () => {
   const user = useState<any>('admin_user', () => null)
   const isLoggedIn = computed(() => !!useCookie('admin_auth_token').value)
-  const { rawFetch } = useApi()
+
+  // NOTE: useApi() is called lazily inside each method (not at setup level)
+  // to avoid SSR crashes when the store is initialized from middleware context
+  // where Nuxt composable context (useRuntimeConfig, useCookie) may not be available.
 
   async function login(email: string, password: string) {
+    const { rawFetch } = useApi()
     const result = await rawFetch<any>('/auth/login', {
       method: 'POST',
       body: { email, password },
@@ -18,6 +22,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchUser() {
+    const { rawFetch } = useApi()
     try {
       const result = await rawFetch<any>('/client/user/me')
       user.value = result
@@ -29,6 +34,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
+    const { rawFetch } = useApi()
     try {
       await rawFetch('/auth/logout', { method: 'POST' })
     } catch {
