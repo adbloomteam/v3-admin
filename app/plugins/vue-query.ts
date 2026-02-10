@@ -1,15 +1,24 @@
-import { VueQueryPlugin, QueryClient, type VueQueryPluginOptions } from '@tanstack/vue-query'
+import { VueQueryPlugin, QueryClient, MutationCache, type VueQueryPluginOptions } from '@tanstack/vue-query'
 
 export default defineNuxtPlugin((nuxtApp) => {
+  const mutationCache = new MutationCache({
+    onError: (error: any) => {
+      const toast = useToast()
+      const message = error?.data?.error || error?.message || 'Something went wrong'
+      toast.add({ title: 'Error', description: message, color: 'error' })
+    },
+  })
+
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 1000 * 60 * 2, // 2 minutes
-        gcTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 2,
+        gcTime: 1000 * 60 * 5,
         retry: 1,
         refetchOnWindowFocus: false,
       },
     },
+    mutationCache,
   })
 
   const options: VueQueryPluginOptions = { queryClient }

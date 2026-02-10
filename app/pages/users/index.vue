@@ -43,7 +43,8 @@ async function exportCsv() {
     a.click()
     URL.revokeObjectURL(url)
   } catch {
-    alert('Failed to export CSV')
+    const toast = useToast()
+    toast.add({ title: 'Failed to export CSV', color: 'error' })
   }
 }
 </script>

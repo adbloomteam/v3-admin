@@ -46,16 +46,30 @@ const totalPages = computed(() => Math.ceil(total.value / perPage))
 watch([statusFilter, typeFilter], () => { page.value = 1 })
 watch(debouncedSearch, () => { page.value = 1 })
 
-function deleteMission(id: string) {
-  if (!confirm('Delete this mission?')) return
-  deleteMutation.mutate(id, {
-    onError: (e: any) => alert(e?.message || 'Failed to delete mission'),
+const toast = useToast()
+const deleteTarget = ref<string | null>(null)
+
+function confirmDelete(id: string) {
+  deleteTarget.value = id
+}
+
+function cancelDelete() {
+  deleteTarget.value = null
+}
+
+function executeDelete() {
+  if (!deleteTarget.value) return
+  deleteMutation.mutate(deleteTarget.value, {
+    onSuccess: () => {
+      toast.add({ title: 'Mission deleted', color: 'success' })
+      deleteTarget.value = null
+    },
   })
 }
 
 function updateStatus(id: string, status: string) {
   statusMutation.mutate({ id, status: status as any }, {
-    onError: (e: any) => alert(e?.message || 'Failed to update status'),
+    onSuccess: () => toast.add({ title: `Mission ${status}`, color: 'success' }),
   })
 }
 </script>
@@ -146,7 +160,7 @@ function updateStatus(id: string, status: string) {
                   <UButton
                     variant="ghost" size="xs" color="error"
                     icon="i-lucide-trash-2" title="Delete"
-                    @click="deleteMission(m.id)"
+                    @click="confirmDelete(m.id)"
                   />
                 </div>
               </td>
@@ -164,5 +178,18 @@ function updateStatus(id: string, status: string) {
         </div>
       </div>
     </div>
+
+    <UModal :open="!!deleteTarget" @close="cancelDelete">
+      <template #content>
+        <div class="p-6 space-y-4">
+          <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Delete Mission</h3>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Are you sure you want to delete this mission? This action cannot be undone.</p>
+          <div class="flex justify-end gap-3">
+            <UButton variant="outline" @click="cancelDelete">Cancel</UButton>
+            <UButton color="error" :loading="deleteMutation.isPending.value" @click="executeDelete">Delete</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

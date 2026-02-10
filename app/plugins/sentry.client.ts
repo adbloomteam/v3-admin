@@ -17,6 +17,12 @@ export default defineNuxtPlugin((nuxtApp) => {
     Sentry.captureException(error)
   })
 
+  if (typeof window !== 'undefined') {
+    window.addEventListener('unhandledrejection', (event) => {
+      Sentry.captureException(event.reason)
+    })
+  }
+
   return {
     provide: {
       sentry: Sentry,

@@ -86,7 +86,8 @@ async function preview() {
     previewCount.value = res.count ?? 0
     previewUsers.value = res.users || []
   } catch (e: any) {
-    alert(e?.data?.error || 'Failed to preview')
+    const toast = useToast()
+    toast.add({ title: e?.data?.error || 'Failed to preview', color: 'error' })
   } finally {
     previewing.value = false
   }

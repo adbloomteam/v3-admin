@@ -16,10 +16,22 @@ const segments = computed(() => data.value?.segments || [])
 const total = computed(() => data.value?.total || 0)
 const totalPages = computed(() => Math.ceil(total.value / perPage))
 
-function deleteSegment(id: string) {
-  if (!confirm('Delete this segment?')) return
-  deleteMutation.mutate(id, {
-    onError: (err: any) => alert(err?.message || 'Failed to delete segment'),
+const toast = useToast()
+const deleteTarget = ref<string | null>(null)
+
+function confirmDelete(id: string) {
+  deleteTarget.value = id
+}
+function cancelDelete() {
+  deleteTarget.value = null
+}
+function executeDelete() {
+  if (!deleteTarget.value) return
+  deleteMutation.mutate(deleteTarget.value, {
+    onSuccess: () => {
+      toast.add({ title: 'Segment deleted', color: 'success' })
+      deleteTarget.value = null
+    },
   })
 }
 </script>
@@ -75,7 +87,7 @@ function deleteSegment(id: string) {
                   <NuxtLink :to="`/segments/${s.id}/edit`">
                     <UButton variant="ghost" size="xs" icon="i-lucide-pencil" />
                   </NuxtLink>
-                  <UButton variant="ghost" size="xs" color="error" icon="i-lucide-trash-2" @click="deleteSegment(s.id)" />
+                  <UButton variant="ghost" size="xs" color="error" icon="i-lucide-trash-2" @click="confirmDelete(s.id)" />
                 </div>
               </td>
             </tr>
@@ -92,5 +104,18 @@ function deleteSegment(id: string) {
         </div>
       </div>
     </div>
+
+    <UModal :open="!!deleteTarget" @close="cancelDelete">
+      <template #content>
+        <div class="p-6 space-y-4">
+          <h3 class="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Delete Segment</h3>
+          <p class="text-sm text-zinc-500 dark:text-zinc-400">Are you sure? This action cannot be undone.</p>
+          <div class="flex justify-end gap-3">
+            <UButton variant="outline" @click="cancelDelete">Cancel</UButton>
+            <UButton color="error" :loading="deleteMutation.isPending.value" @click="executeDelete">Delete</UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
