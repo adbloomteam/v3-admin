@@ -25,9 +25,7 @@ const form = reactive({
 })
 
 const logoFile = ref<File | null>(null)
-const imageFile = ref<File | null>(null)
 const logoPreview = ref<string | null>(null)
-const imagePreview = ref<string | null>(null)
 const saving = ref(false)
 
 watch(() => props.open, (val) => {
@@ -37,7 +35,6 @@ watch(() => props.open, (val) => {
     form.website_url = props.brand.website_url || ''
     form.external_affiliate_id = props.brand.external_affiliate_id || ''
     logoPreview.value = props.brand.logo_url || null
-    imagePreview.value = props.brand.image_url || null
   } else if (val) {
     resetForm()
   }
@@ -51,9 +48,7 @@ function resetForm() {
     external_affiliate_id: '',
   })
   logoFile.value = null
-  imageFile.value = null
   logoPreview.value = null
-  imagePreview.value = null
 }
 
 function onLogoChange(e: Event) {
@@ -64,22 +59,9 @@ function onLogoChange(e: Event) {
   }
 }
 
-function onImageChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (file) {
-    imageFile.value = file
-    imagePreview.value = URL.createObjectURL(file)
-  }
-}
-
 function removeLogo() {
   logoFile.value = null
   logoPreview.value = null
-}
-
-function removeImage() {
-  imageFile.value = null
-  imagePreview.value = null
 }
 
 const errorMsg = ref('')
@@ -101,7 +83,6 @@ async function handleSubmit() {
     if (isEdit.value && props.brand) {
       // Update brand
       if (!logoPreview.value && props.brand.logo_url) body.logo_url = null
-      if (!imagePreview.value && props.brand.image_url) body.image_url = null
 
       const result = await updateMutation.mutateAsync({ id: props.brand.id, data: body })
       brand = result.data
@@ -123,19 +104,6 @@ async function handleSubmit() {
         data: { logo_url: uploadResult.url },
       })
       brand.logo_url = uploadResult.url
-    }
-
-    if (imageFile.value) {
-      const uploadResult = await uploadMutation.mutateAsync({
-        file: imageFile.value,
-        brandId: brand.id,
-        type: 'image',
-      })
-      await updateMutation.mutateAsync({
-        id: brand.id,
-        data: { image_url: uploadResult.url },
-      })
-      brand.image_url = uploadResult.url
     }
 
     emit('saved', brand)
@@ -208,23 +176,6 @@ const descriptionLength = computed(() => {
                 <UIcon name="i-lucide-upload" class="size-4" />
                 {{ logoPreview ? 'Replace' : 'Upload Logo' }}
                 <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onLogoChange" />
-              </label>
-            </div>
-          </UFormField>
-
-          <!-- Brand image upload -->
-          <UFormField label="Brand Image">
-            <div class="flex items-center gap-3">
-              <div v-if="imagePreview" class="relative">
-                <img :src="imagePreview" alt="Image preview" class="w-16 h-16 rounded-lg object-cover border border-(--ui-border)" />
-                <button type="button" @click="removeImage" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5">
-                  <UIcon name="i-lucide-x" class="size-3" />
-                </button>
-              </div>
-              <label class="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-(--ui-border) text-sm text-(--ui-text-muted) hover:bg-(--ui-bg-elevated) transition-colors">
-                <UIcon name="i-lucide-upload" class="size-4" />
-                {{ imagePreview ? 'Replace' : 'Upload Image' }}
-                <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="onImageChange" />
               </label>
             </div>
           </UFormField>
