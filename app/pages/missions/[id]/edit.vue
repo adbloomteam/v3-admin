@@ -12,9 +12,10 @@ const uploadMutation = useUploadMissionImage()
 // Brands dropdown
 const { data: brandsData } = useAllBrandsQuery()
 const brandOptions = computed(() => {
-  const opts = [{ label: '— None —', value: '' }]
-  if (brandsData.value) {
-    for (const b of brandsData.value) {
+  const opts = [{ label: '— None —', value: 'none' }]
+  const brands = brandsData.value?.data
+  if (brands) {
+    for (const b of brands) {
       opts.push({ label: b.name, value: b.id })
     }
   }
@@ -29,7 +30,7 @@ function onBrandCreated() {
 const form = reactive({
   title: '',
   description: '',
-  brand_id: '' as string,
+  brand_id: 'none' as string,
   brand_name: '',
   brand_logo_url: '',
   hero_image_url: '',
@@ -165,7 +166,7 @@ watch(mission, (res) => {
     Object.assign(form, {
       title: res.title || '',
       description: res.description || '',
-      brand_id: res.brand_id || '',
+      brand_id: res.brand_id || 'none',
       brand_name: res.brand_name || '',
       brand_logo_url: res.brand_logo_url || '',
       hero_image_url: res.hero_image_url || '',
@@ -247,7 +248,7 @@ const statusColor: Record<string, string> = {
 function handleSubmit() {
   const body: any = { ...form }
   // Send brand_id (backend auto-populates brand fields); send null to clear
-  if (body.brand_id) {
+  if (body.brand_id && body.brand_id !== 'none') {
     delete body.brand_name
   } else {
     body.brand_id = null

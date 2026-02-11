@@ -10,9 +10,10 @@ const { validate, errors, getFieldError, hasFieldError } = useFormValidation(cre
 // Brands dropdown
 const { data: brandsData } = useAllBrandsQuery()
 const brandOptions = computed(() => {
-  const opts = [{ label: '— None —', value: '' }]
-  if (brandsData.value) {
-    for (const b of brandsData.value) {
+  const opts = [{ label: '— None —', value: 'none' }]
+  const brands = brandsData.value?.data
+  if (brands) {
+    for (const b of brands) {
       opts.push({ label: b.name, value: b.id })
     }
   }
@@ -27,7 +28,7 @@ function onBrandCreated() {
 const form = reactive({
   title: '',
   description: '',
-  brand_id: '',
+  brand_id: 'none',
   brand_name: '',
   brand_logo_url: '',
   hero_image_url: '',
@@ -236,10 +237,11 @@ async function handleSubmit() {
   if (!body.category || body.category === 'none') delete body.category
 
   // Send brand_id instead of brand_name (backend auto-populates brand fields)
-  if (body.brand_id) {
+  if (body.brand_id && body.brand_id !== 'none') {
     delete body.brand_name
   } else {
     delete body.brand_id
+    delete body.brand_name
   }
 
   // Remove image fields from initial creation (we'll update them after upload)
