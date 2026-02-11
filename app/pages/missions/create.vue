@@ -142,7 +142,7 @@ function addStage() {
     stage_description: '',
     reward_amount: 0,
     is_optional: false,
-    config: {},
+    config: { profile_question_ids: [] },
   })
 }
 

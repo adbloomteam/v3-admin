@@ -197,7 +197,7 @@ watch(mission, (res) => {
 }, { immediate: true })
 
 function addStage() {
-  stages.value.push({ stage_type: 'visit_link', stage_name: '', stage_description: '', reward_amount: 0, is_optional: false, config: {} })
+  stages.value.push({ stage_type: 'visit_link', stage_name: '', stage_description: '', reward_amount: 0, is_optional: false, config: { profile_question_ids: [] } })
 }
 function removeStage(i: number) { stages.value.splice(i, 1) }
 

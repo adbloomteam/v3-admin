@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { missionTypeEmoji, statusColor } from '~/utils/format'
+
 definePageMeta({ layout: 'admin' })
 
 const page = ref(1)
