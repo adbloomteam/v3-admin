@@ -111,8 +111,7 @@ export function useUploadService() {
   async function deleteMissionImage(url: string): Promise<{ success: boolean }> {
     return apiFetch<{ success: boolean }>('/upload/mission-image', {
       method: 'DELETE',
-      body: JSON.stringify({ url }),
-      headers: { 'Content-Type': 'application/json' },
+      body: { url },
     })
   }
 

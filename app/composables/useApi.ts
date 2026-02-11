@@ -55,14 +55,15 @@ export function useApi() {
   /** Execute a fetch, retry once on 401 after refreshing the token */
   async function fetchWithRefresh<T>(path: string, fetchBaseURL: string, options: any = {}): Promise<T> {
     const token = useCookie('admin_auth_token').value
+    const { headers: customHeaders, ...restOptions } = options
     try {
       return await $fetch<T>(path, {
         baseURL: fetchBaseURL,
+        ...restOptions,
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...options.headers,
+          ...customHeaders,
         },
-        ...options,
       })
     } catch (err: any) {
       // Only attempt refresh on 401, and only on client side
@@ -73,11 +74,11 @@ export function useApi() {
           const newToken = useCookie('admin_auth_token').value
           return await $fetch<T>(path, {
             baseURL: fetchBaseURL,
+            ...restOptions,
             headers: {
               ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
-              ...options.headers,
+              ...customHeaders,
             },
-            ...options,
           })
         }
         // Refresh failed — force logout

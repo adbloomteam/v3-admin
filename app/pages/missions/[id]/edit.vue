@@ -39,6 +39,7 @@ const form = reactive({
   affiliate_url: '',
   affiliate_network: '',
   reward_amount: 0,
+  display_reward_as_usd: false,
   max_participants: null as number | null,
   is_featured: false,
   is_public: true,
@@ -191,6 +192,7 @@ watch(mission, (res) => {
       affiliate_url: res.affiliate_url || '',
       affiliate_network: res.affiliate_network || '',
       reward_amount: res.reward_amount || 0,
+      display_reward_as_usd: !!res.display_reward_as_usd,
       max_participants: res.max_participants || null,
       is_featured: !!res.is_featured,
       is_public: res.is_public !== false,
@@ -383,6 +385,7 @@ function updateStatus(status: string) {
               </template>
             </UFormField>
           </div>
+          <UCheckbox v-model="form.display_reward_as_usd" label="Display reward as $ USD to users" />
         </div>
 
         <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 space-y-4">
