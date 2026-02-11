@@ -218,9 +218,13 @@ async function handleSubmit() {
 
   // Step 1: Create the mission first (we need the mission ID for image uploads)
   const body: any = { ...form }
+  // Convert dollars to cents for backend
+  body.reward_amount = Math.round((body.reward_amount || 0) * 100)
   if (stages.value.length > 0) {
     body.stages = stages.value.map((s: any) => {
       const stage = { ...s }
+      // Convert stage reward dollars to cents
+      stage.reward_amount = Math.round((stage.reward_amount || 0) * 100)
       // Only include config for survey stages
       if (stage.stage_type === 'survey' && stage.config?.profile_question_ids?.length) {
         stage.config = { profile_question_ids: stage.config.profile_question_ids }
@@ -243,6 +247,11 @@ async function handleSubmit() {
     delete body.brand_id
     delete body.brand_name
   }
+
+  // Remove empty string URL fields (Zod rejects '' for .url())
+  if (!body.affiliate_url) delete body.affiliate_url
+  if (!body.affiliate_network) delete body.affiliate_network
+  if (!body.terms_conditions) delete body.terms_conditions
 
   // Remove image fields from initial creation (we'll update them after upload)
   delete body.brand_logo_url

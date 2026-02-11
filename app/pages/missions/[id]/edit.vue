@@ -190,7 +190,10 @@ watch(mission, (res) => {
       stage_description: s.stage_description || '',
       reward_amount: (s.reward_amount || 0) / 100,
       is_optional: !!s.is_optional,
-      config: s.config || {},
+      config: {
+        ...s.config,
+        profile_question_ids: s.config?.profile_question_ids || [],
+      },
     }))
     formReady.value = true
   }
@@ -247,6 +250,8 @@ const statusColor: Record<string, string> = {
 
 function handleSubmit() {
   const body: any = { ...form }
+  // Convert dollars to cents for backend
+  body.reward_amount = Math.round((body.reward_amount || 0) * 100)
   // Send brand_id (backend auto-populates brand fields); send null to clear
   if (body.brand_id && body.brand_id !== 'none') {
     delete body.brand_name
@@ -257,6 +262,8 @@ function handleSubmit() {
   if (stages.value.length > 0) {
     body.stages = stages.value.map((s: any) => {
       const stage = { ...s }
+      // Convert stage reward dollars to cents
+      stage.reward_amount = Math.round((stage.reward_amount || 0) * 100)
       if (stage.stage_type === 'survey' && stage.config?.profile_question_ids?.length) {
         stage.config = { profile_question_ids: stage.config.profile_question_ids }
       } else {
@@ -270,6 +277,14 @@ function handleSubmit() {
   if (!body.start_date) delete body.start_date
   if (!body.end_date) delete body.end_date
   if (!body.category || body.category === 'none') delete body.category
+  // Remove empty string URL fields (Zod rejects '' for .url())
+  if (!body.affiliate_url) delete body.affiliate_url
+  if (!body.brand_logo_url) delete body.brand_logo_url
+  if (!body.hero_image_url) delete body.hero_image_url
+  if (!body.affiliate_network) delete body.affiliate_network
+  if (!body.terms_conditions) delete body.terms_conditions
+  // Clean mission_images: remove if empty array
+  if (!body.mission_images?.length) delete body.mission_images
   updateMutation.mutate({ id, data: body }, {
     onSuccess: () => navigateTo('/missions'),
   })

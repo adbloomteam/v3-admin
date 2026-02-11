@@ -3,6 +3,9 @@ import type { ProfileQuestion } from '~/types'
 
 const model = defineModel<string[]>({ default: () => [] })
 
+// Ensure model is always an array (guards against undefined from parent)
+const selectedIds = computed(() => model.value || [])
+
 const { data, isPending } = useProfileQuestionsQuery()
 const questions = computed<ProfileQuestion[]>(() => (data.value?.data || []).filter((q: ProfileQuestion) => q.is_active !== false))
 
@@ -63,7 +66,7 @@ const grouped = computed(() => {
 })
 
 function toggle(id: string) {
-  const current = [...model.value]
+  const current = [...selectedIds.value]
   const idx = current.indexOf(id)
   if (idx >= 0) {
     current.splice(idx, 1)
@@ -74,7 +77,7 @@ function toggle(id: string) {
 }
 
 function isSelected(id: string) {
-  return model.value.includes(id)
+  return selectedIds.value.includes(id)
 }
 
 // Inline create modal
@@ -83,7 +86,7 @@ const showCreateModal = ref(false)
 function onQuestionCreated(newQuestion: ProfileQuestion) {
   // Auto-select the newly created question
   if (newQuestion?.id) {
-    model.value = [...model.value, newQuestion.id]
+    model.value = [...selectedIds.value, newQuestion.id]
   }
   showCreateModal.value = false
 }
@@ -94,7 +97,7 @@ function onQuestionCreated(newQuestion: ProfileQuestion) {
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <h3 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Survey Questions</h3>
-        <UBadge v-if="model.length" variant="subtle" color="primary" size="xs">{{ model.length }} selected</UBadge>
+        <UBadge v-if="selectedIds.length" variant="subtle" color="primary" size="xs">{{ selectedIds.length }} selected</UBadge>
       </div>
       <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="showCreateModal = true">New Question</UButton>
     </div>
