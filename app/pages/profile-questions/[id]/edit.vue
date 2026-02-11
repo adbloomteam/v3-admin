@@ -117,10 +117,12 @@ function handleSubmit() {
             <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Options</h2>
             <UButton variant="outline" size="xs" icon="i-lucide-plus" @click="addOption">Add Option</UButton>
           </div>
-          <div v-if="!options.length" class="text-sm text-zinc-400">No options</div>
-          <div v-for="(_, i) in options" :key="i" class="flex items-center gap-2">
-            <UInput v-model="options[i]" :placeholder="`Option ${i + 1}`" class="flex-1" size="sm" required />
-            <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeOption(i)" />
+          <div class="max-h-64 overflow-y-auto space-y-2">
+            <div v-if="!options.length" class="text-sm text-zinc-400">No options</div>
+            <div v-for="(_, i) in options" :key="i" class="flex items-center gap-2">
+              <UInput v-model="options[i]" :placeholder="`Option ${i + 1}`" class="flex-1" size="sm" required />
+              <UButton variant="ghost" size="xs" color="error" icon="i-lucide-x" @click="removeOption(i)" />
+            </div>
           </div>
         </div>
 
