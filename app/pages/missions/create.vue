@@ -7,9 +7,27 @@ const createMutation = useCreateMission()
 const uploadMutation = useUploadMissionImage()
 const { validate, errors, getFieldError, hasFieldError } = useFormValidation(createMissionSchema)
 
+// Brands dropdown
+const { data: brandsData } = useAllBrandsQuery()
+const brandOptions = computed(() => {
+  const opts = [{ label: '— None —', value: '' }]
+  if (brandsData.value) {
+    for (const b of brandsData.value) {
+      opts.push({ label: b.name, value: b.id })
+    }
+  }
+  return opts
+})
+const brandModalOpen = ref(false)
+
+function onBrandCreated() {
+  brandModalOpen.value = false
+}
+
 const form = reactive({
   title: '',
   description: '',
+  brand_id: '',
   brand_name: '',
   brand_logo_url: '',
   hero_image_url: '',
@@ -217,6 +235,13 @@ async function handleSubmit() {
   if (!body.end_date) delete body.end_date
   if (!body.category || body.category === 'none') delete body.category
 
+  // Send brand_id instead of brand_name (backend auto-populates brand fields)
+  if (body.brand_id) {
+    delete body.brand_name
+  } else {
+    delete body.brand_id
+  }
+
   // Remove image fields from initial creation (we'll update them after upload)
   delete body.brand_logo_url
   delete body.hero_image_url
@@ -347,8 +372,11 @@ async function handleSubmit() {
           </UFormField>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <UFormField label="Brand Name">
-            <UInput v-model="form.brand_name" placeholder="Brand" class="w-full" />
+          <UFormField label="Brand">
+            <div class="flex gap-2">
+              <USelect v-model="form.brand_id" :items="brandOptions" value-key="value" class="flex-1" />
+              <UButton variant="outline" size="sm" icon="i-lucide-plus" @click="brandModalOpen = true" title="Create Brand" />
+            </div>
           </UFormField>
           <UFormField label="Reward Amount ($)" required :error="getFieldError('reward_amount')">
             <UInput
@@ -528,5 +556,7 @@ async function handleSubmit() {
         </NuxtLink>
       </div>
     </form>
+
+    <BrandFormModal :open="brandModalOpen" @close="brandModalOpen = false" @saved="onBrandCreated" />
   </div>
 </template>

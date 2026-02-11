@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import type { UploadMissionImageParams, UploadAvatarParams } from '~/services/api/upload'
+import type { UploadMissionImageParams, UploadAvatarParams, UploadBrandImageParams } from '~/services/api/upload'
 
 /**
  * Upload mission image mutation
@@ -33,6 +33,19 @@ export function useUploadAvatar() {
       queryClient.invalidateQueries({ queryKey: ['user', vars.userId] })
       // Also invalidate users list in case avatar shows up there
       queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}
+
+export function useUploadBrandImage() {
+  const { uploadBrandImage } = useUploadService()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (params: UploadBrandImageParams) => uploadBrandImage(params),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['brand', vars.brandId] })
+      queryClient.invalidateQueries({ queryKey: ['brands'] })
     },
   })
 }

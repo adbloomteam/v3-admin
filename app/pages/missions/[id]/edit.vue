@@ -9,9 +9,27 @@ const updateMutation = useUpdateMission()
 const statusMutation = useUpdateMissionStatus()
 const uploadMutation = useUploadMissionImage()
 
+// Brands dropdown
+const { data: brandsData } = useAllBrandsQuery()
+const brandOptions = computed(() => {
+  const opts = [{ label: '— None —', value: '' }]
+  if (brandsData.value) {
+    for (const b of brandsData.value) {
+      opts.push({ label: b.name, value: b.id })
+    }
+  }
+  return opts
+})
+const brandModalOpen = ref(false)
+
+function onBrandCreated() {
+  brandModalOpen.value = false
+}
+
 const form = reactive({
   title: '',
   description: '',
+  brand_id: '' as string,
   brand_name: '',
   brand_logo_url: '',
   hero_image_url: '',
@@ -147,6 +165,7 @@ watch(mission, (res) => {
     Object.assign(form, {
       title: res.title || '',
       description: res.description || '',
+      brand_id: res.brand_id || '',
       brand_name: res.brand_name || '',
       brand_logo_url: res.brand_logo_url || '',
       hero_image_url: res.hero_image_url || '',
@@ -227,6 +246,13 @@ const statusColor: Record<string, string> = {
 
 function handleSubmit() {
   const body: any = { ...form }
+  // Send brand_id (backend auto-populates brand fields); send null to clear
+  if (body.brand_id) {
+    delete body.brand_name
+  } else {
+    body.brand_id = null
+    delete body.brand_name
+  }
   if (stages.value.length > 0) {
     body.stages = stages.value.map((s: any) => {
       const stage = { ...s }
@@ -313,8 +339,11 @@ function updateStatus(status: string) {
             </UFormField>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <UFormField label="Brand Name">
-              <UInput v-model="form.brand_name" class="w-full" />
+            <UFormField label="Brand">
+              <div class="flex gap-2">
+                <USelect v-model="form.brand_id" :items="brandOptions" value-key="value" class="flex-1" />
+                <UButton variant="outline" size="sm" icon="i-lucide-plus" @click="brandModalOpen = true" title="Create Brand" />
+              </div>
             </UFormField>
             <UFormField label="Reward ($)">
               <UInput v-model.number="form.reward_amount" type="number" step="0.01" min="0" class="w-full" />
@@ -526,5 +555,7 @@ function updateStatus(status: string) {
     <div v-else-if="isError" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 rounded-lg px-4 py-3">
       {{ error?.message || 'Mission not found' }}
     </div>
+
+    <BrandFormModal :open="brandModalOpen" @close="brandModalOpen = false" @saved="onBrandCreated" />
   </div>
 </template>

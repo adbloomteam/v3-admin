@@ -14,6 +14,12 @@ export interface UploadAvatarParams {
   userId: string
 }
 
+export interface UploadBrandImageParams {
+  file: File
+  brandId: string
+  type: 'logo' | 'image'
+}
+
 export function useUploadService() {
   const { apiFetch } = useApi()
 
@@ -76,5 +82,28 @@ export function useUploadService() {
     })
   }
 
-  return { uploadMissionImage, uploadAvatar }
+  async function uploadBrandImage(params: UploadBrandImageParams): Promise<UploadResult> {
+    const { file, brandId, type } = params
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Invalid file type. Allowed: JPEG, PNG, WebP')
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('File too large. Max 5MB')
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('brandId', brandId)
+    formData.append('type', type)
+
+    return apiFetch<UploadResult>('/upload/brand-image', {
+      method: 'POST',
+      body: formData,
+    })
+  }
+
+  return { uploadMissionImage, uploadAvatar, uploadBrandImage }
 }

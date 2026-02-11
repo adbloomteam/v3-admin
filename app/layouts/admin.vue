@@ -7,6 +7,7 @@ const mobileOpen = ref(false)
 const navItems = [
   { label: 'Dashboard', to: '/dashboard', icon: 'i-lucide-layout-dashboard' },
   { label: 'Missions', to: '/missions', icon: 'i-lucide-target' },
+  { label: 'Brands', to: '/brands', icon: 'i-lucide-building-2' },
   { label: 'Users', to: '/users', icon: 'i-lucide-users' },
   { label: 'Segments', to: '/segments', icon: 'i-lucide-filter' },
   { label: 'Transactions', to: '/transactions', icon: 'i-lucide-receipt' },
