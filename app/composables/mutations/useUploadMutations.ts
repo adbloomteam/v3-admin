@@ -19,6 +19,22 @@ export function useUploadMissionImage() {
 }
 
 /**
+ * Delete mission image mutation
+ * Cleans up storage and invalidates mission query
+ */
+export function useDeleteMissionImage() {
+  const { deleteMissionImage } = useUploadService()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ url, missionId }: { url: string; missionId: string }) => deleteMissionImage(url),
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['mission', vars.missionId] })
+    },
+  })
+}
+
+/**
  * Upload avatar mutation
  * Invalidates user query on success
  */

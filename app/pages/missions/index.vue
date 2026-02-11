@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { missionTypeEmoji, statusColor } from '~/utils/format'
+import { missionTypeEmoji, statusColor, formatPoints } from '~/utils/format'
 
 definePageMeta({ layout: 'admin' })
 
@@ -135,7 +135,7 @@ function updateStatus(id: string, status: string) {
                   {{ m.status }}
                 </UBadge>
               </td>
-              <td class="px-5 py-3 text-right font-medium text-zinc-900 dark:text-zinc-100">{{ formatCurrency(m.reward_amount) }}</td>
+              <td class="px-5 py-3 text-right font-medium text-zinc-900 dark:text-zinc-100">{{ formatPoints(m.reward_amount) }}</td>
               <td class="px-5 py-3 text-right text-zinc-500 dark:text-zinc-400">
                 {{ m.current_participants }}{{ m.max_participants ? ` / ${m.max_participants}` : '' }}
               </td>

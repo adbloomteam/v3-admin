@@ -32,7 +32,6 @@ const form = reactive({
   description: '',
   brand_id: 'none' as string,
   brand_name: '',
-  brand_logo_url: '',
   hero_image_url: '',
   mission_images: [] as string[],
   mission_type: 'affiliate',
@@ -53,22 +52,14 @@ const stages = ref<any[]>([])
 const formReady = ref(false)
 
 // Image upload state
-const logoFile = ref<File | null>(null)
 const heroFile = ref<File | null>(null)
 const galleryFiles = ref<File[]>([])
-const uploadingLogo = ref(false)
 const uploadingHero = ref(false)
 const uploadingGallery = ref(false)
+const removingHero = ref(false)
+const removingGalleryIdx = ref<number | null>(null)
 const uploadError = ref('')
-
-// Handle logo file selection
-function handleLogoChange(e: Event) {
-  const target = e.target as HTMLInputElement
-  if (target.files?.[0]) {
-    logoFile.value = target.files[0]
-    uploadError.value = ''
-  }
-}
+const deleteImageMutation = useDeleteMissionImage()
 
 // Handle hero file selection
 function handleHeroChange(e: Event) {
@@ -88,42 +79,62 @@ function handleGalleryChange(e: Event) {
   }
 }
 
-// Upload individual image immediately
-async function uploadImageNow(type: 'logo' | 'hero') {
-  const file = type === 'logo' ? logoFile.value : heroFile.value
-  if (!file) return
-
-  const isLogoUpload = type === 'logo'
-  if (isLogoUpload) uploadingLogo.value = true
-  else uploadingHero.value = true
-
+// Upload hero image immediately
+async function uploadHeroNow() {
+  if (!heroFile.value) return
+  uploadingHero.value = true
   uploadError.value = ''
 
   try {
     const result = await uploadMutation.mutateAsync({
-      file,
+      file: heroFile.value,
       missionId: id,
-      type,
+      type: 'hero',
     })
 
-    // Update mission immediately with new URL
     await updateMutation.mutateAsync({
       id,
-      data: isLogoUpload ? { brand_logo_url: result.url } : { hero_image_url: result.url },
+      data: { hero_image_url: result.url },
     })
 
-    // Update local form state
-    if (isLogoUpload) form.brand_logo_url = result.url
-    else form.hero_image_url = result.url
-
-    // Clear file input
-    if (isLogoUpload) logoFile.value = null
-    else heroFile.value = null
+    form.hero_image_url = result.url
+    heroFile.value = null
   } catch (err: any) {
     uploadError.value = `Upload failed: ${err.message}`
   } finally {
-    if (isLogoUpload) uploadingLogo.value = false
-    else uploadingHero.value = false
+    uploadingHero.value = false
+  }
+}
+
+// Remove hero image
+async function removeHeroImage() {
+  if (!form.hero_image_url) return
+  removingHero.value = true
+  try {
+    await deleteImageMutation.mutateAsync({ url: form.hero_image_url, missionId: id })
+    await updateMutation.mutateAsync({ id, data: { hero_image_url: null } })
+    form.hero_image_url = ''
+  } catch (err: any) {
+    uploadError.value = `Remove failed: ${err.message}`
+  } finally {
+    removingHero.value = false
+  }
+}
+
+// Remove a gallery image by index
+async function removeGalleryImage(idx: number) {
+  const url = form.mission_images[idx]
+  if (!url) return
+  removingGalleryIdx.value = idx
+  try {
+    await deleteImageMutation.mutateAsync({ url, missionId: id })
+    const updated = form.mission_images.filter((_: string, i: number) => i !== idx)
+    await updateMutation.mutateAsync({ id, data: { mission_images: updated.length > 0 ? updated : null } })
+    form.mission_images = updated
+  } catch (err: any) {
+    uploadError.value = `Remove failed: ${err.message}`
+  } finally {
+    removingGalleryIdx.value = null
   }
 }
 
@@ -161,6 +172,11 @@ async function uploadGalleryNow() {
   }
 }
 
+// Auto-sum stage rewards
+const totalStageReward = computed(() =>
+  stages.value.reduce((sum: number, s: any) => sum + (s.reward_amount || 0), 0)
+)
+
 watch(mission, (res) => {
   if (res && !formReady.value) {
     Object.assign(form, {
@@ -168,14 +184,13 @@ watch(mission, (res) => {
       description: res.description || '',
       brand_id: res.brand_id || 'none',
       brand_name: res.brand_name || '',
-      brand_logo_url: res.brand_logo_url || '',
       hero_image_url: res.hero_image_url || '',
       mission_images: res.mission_images || [],
       mission_type: res.mission_type || 'affiliate',
       category: res.category || 'none',
       affiliate_url: res.affiliate_url || '',
       affiliate_network: res.affiliate_network || '',
-      reward_amount: (res.reward_amount || 0) / 100,
+      reward_amount: res.reward_amount || 0,
       max_participants: res.max_participants || null,
       is_featured: !!res.is_featured,
       is_public: res.is_public !== false,
@@ -188,7 +203,7 @@ watch(mission, (res) => {
       stage_type: s.stage_type,
       stage_name: s.stage_name,
       stage_description: s.stage_description || '',
-      reward_amount: (s.reward_amount || 0) / 100,
+      reward_amount: s.reward_amount || 0,
       is_optional: !!s.is_optional,
       config: {
         ...s.config,
@@ -250,8 +265,6 @@ const statusColor: Record<string, string> = {
 
 function handleSubmit() {
   const body: any = { ...form }
-  // Convert dollars to cents for backend
-  body.reward_amount = Math.round((body.reward_amount || 0) * 100)
   // Send brand_id (backend auto-populates brand fields); send null to clear
   if (body.brand_id && body.brand_id !== 'none') {
     delete body.brand_name
@@ -259,11 +272,13 @@ function handleSubmit() {
     body.brand_id = null
     delete body.brand_name
   }
+  // Auto-sum stage rewards for mission total
+  if (stages.value.length > 0) {
+    body.reward_amount = totalStageReward.value
+  }
   if (stages.value.length > 0) {
     body.stages = stages.value.map((s: any) => {
       const stage = { ...s }
-      // Convert stage reward dollars to cents
-      stage.reward_amount = Math.round((stage.reward_amount || 0) * 100)
       if (stage.stage_type === 'survey' && stage.config?.profile_question_ids?.length) {
         stage.config = { profile_question_ids: stage.config.profile_question_ids }
       } else {
@@ -279,7 +294,6 @@ function handleSubmit() {
   if (!body.category || body.category === 'none') delete body.category
   // Remove empty string URL fields (Zod rejects '' for .url())
   if (!body.affiliate_url) delete body.affiliate_url
-  if (!body.brand_logo_url) delete body.brand_logo_url
   if (!body.hero_image_url) delete body.hero_image_url
   if (!body.affiliate_network) delete body.affiliate_network
   if (!body.terms_conditions) delete body.terms_conditions
@@ -361,8 +375,12 @@ function updateStatus(status: string) {
                 <UButton variant="outline" size="sm" icon="i-lucide-plus" @click="brandModalOpen = true" title="Create Brand" />
               </div>
             </UFormField>
-            <UFormField label="Reward ($)">
-              <UInput v-model.number="form.reward_amount" type="number" step="0.01" min="0" class="w-full" />
+            <UFormField label="Reward (Points)">
+              <UInput v-model.number="form.reward_amount" type="number" step="1" min="0" class="w-full" />
+              <template #help>
+                <span v-if="stages.length" class="text-xs text-zinc-400">Stage total: {{ totalStageReward }} pts (auto-set on save)</span>
+                <span v-else class="text-xs text-zinc-400">100 pts = $1.00 USD</span>
+              </template>
             </UFormField>
           </div>
         </div>
@@ -371,84 +389,56 @@ function updateStatus(status: string) {
           <h2 class="text-base font-semibold text-zinc-900 dark:text-zinc-100">Images</h2>
           <p class="text-sm text-zinc-500 dark:text-zinc-400">Upload mission images. Changes are saved immediately. Supported formats: JPEG, PNG, WebP.</p>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <!-- Logo Upload -->
-            <div class="space-y-3">
-              <UFormField label="Brand Logo" help="Max 5MB">
-                <div class="space-y-2">
-                  <div v-if="form.brand_logo_url" class="relative w-full h-32 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800">
-                    <img :src="form.brand_logo_url" alt="Logo" class="w-full h-full object-contain" />
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    @change="handleLogoChange"
-                    class="block w-full text-sm text-zinc-500 dark:text-zinc-400
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-lg file:border-0
-                      file:text-sm file:font-medium
-                      file:bg-zinc-100 dark:file:bg-zinc-800
-                      file:text-zinc-700 dark:file:text-zinc-300
-                      hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
-                      file:cursor-pointer cursor-pointer"
-                  />
-                  <div v-if="logoFile" class="flex items-center gap-2">
-                    <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ logoFile.name }}</span>
-                    <UButton
-                      size="xs"
-                      color="primary"
-                      :loading="uploadingLogo"
-                      @click="uploadImageNow('logo')"
-                    >
-                      Upload
-                    </UButton>
-                  </div>
-                </div>
-              </UFormField>
+          <!-- Hero Image -->
+          <UFormField label="Hero Image" help="Max 5MB">
+            <div class="space-y-2">
+              <div v-if="form.hero_image_url" class="relative w-full h-48 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800 group">
+                <img :src="form.hero_image_url" alt="Hero" class="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                  :disabled="removingHero"
+                  @click="removeHeroImage"
+                >
+                  <UIcon v-if="removingHero" name="i-lucide-loader-2" class="w-4 h-4 animate-spin" />
+                  <UIcon v-else name="i-lucide-x" class="w-4 h-4" />
+                </button>
+              </div>
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                @change="handleHeroChange"
+                class="block w-full text-sm text-zinc-500 dark:text-zinc-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-lg file:border-0
+                  file:text-sm file:font-medium
+                  file:bg-zinc-100 dark:file:bg-zinc-800
+                  file:text-zinc-700 dark:file:text-zinc-300
+                  hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
+                  file:cursor-pointer cursor-pointer"
+              />
+              <div v-if="heroFile" class="flex items-center gap-2">
+                <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ heroFile.name }}</span>
+                <UButton size="xs" color="primary" :loading="uploadingHero" @click="uploadHeroNow">Upload</UButton>
+              </div>
             </div>
-
-            <!-- Hero Image Upload -->
-            <div class="space-y-3">
-              <UFormField label="Hero Image" help="Max 5MB">
-                <div class="space-y-2">
-                  <div v-if="form.hero_image_url" class="relative w-full h-32 rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800">
-                    <img :src="form.hero_image_url" alt="Hero" class="w-full h-full object-cover" />
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    @change="handleHeroChange"
-                    class="block w-full text-sm text-zinc-500 dark:text-zinc-400
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-lg file:border-0
-                      file:text-sm file:font-medium
-                      file:bg-zinc-100 dark:file:bg-zinc-800
-                      file:text-zinc-700 dark:file:text-zinc-300
-                      hover:file:bg-zinc-200 dark:hover:file:bg-zinc-700
-                      file:cursor-pointer cursor-pointer"
-                  />
-                  <div v-if="heroFile" class="flex items-center gap-2">
-                    <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ heroFile.name }}</span>
-                    <UButton
-                      size="xs"
-                      color="primary"
-                      :loading="uploadingHero"
-                      @click="uploadImageNow('hero')"
-                    >
-                      Upload
-                    </UButton>
-                  </div>
-                </div>
-              </UFormField>
-            </div>
-          </div>
+          </UFormField>
 
           <!-- Gallery Images -->
           <UFormField label="Gallery Images" help="Max 5MB each, multiple files allowed">
             <div class="space-y-3">
               <div v-if="form.mission_images && form.mission_images.length > 0" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div v-for="(url, idx) in form.mission_images" :key="idx" class="relative w-full aspect-square rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800">
+                <div v-for="(url, idx) in form.mission_images" :key="idx" class="relative w-full aspect-square rounded-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden bg-zinc-50 dark:bg-zinc-800 group">
                   <img :src="url" alt="Gallery" class="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100"
+                    :disabled="removingGalleryIdx === idx"
+                    @click="removeGalleryImage(idx)"
+                  >
+                    <UIcon v-if="removingGalleryIdx === idx" name="i-lucide-loader-2" class="w-3 h-3 animate-spin" />
+                    <UIcon v-else name="i-lucide-x" class="w-3 h-3" />
+                  </button>
                 </div>
               </div>
               <input
@@ -467,14 +457,7 @@ function updateStatus(status: string) {
               />
               <div v-if="galleryFiles.length > 0" class="flex items-center gap-2">
                 <span class="text-xs text-zinc-500 dark:text-zinc-400">{{ galleryFiles.length }} file(s) selected</span>
-                <UButton
-                  size="xs"
-                  color="primary"
-                  :loading="uploadingGallery"
-                  @click="uploadGalleryNow"
-                >
-                  Upload
-                </UButton>
+                <UButton size="xs" color="primary" :loading="uploadingGallery" @click="uploadGalleryNow">Upload</UButton>
               </div>
             </div>
           </UFormField>
@@ -544,8 +527,8 @@ function updateStatus(status: string) {
               <UInput v-model="stage.stage_description" class="w-full" size="sm" />
             </UFormField>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <UFormField label="Reward ($)">
-                <UInput v-model.number="stage.reward_amount" type="number" step="0.01" min="0" class="w-full" size="sm" />
+              <UFormField label="Reward (Points)">
+                <UInput v-model.number="stage.reward_amount" type="number" step="1" min="0" class="w-full" size="sm" />
               </UFormField>
               <div class="flex items-end pb-1">
                 <UCheckbox v-model="stage.is_optional" label="Optional" />

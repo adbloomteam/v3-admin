@@ -105,5 +105,16 @@ export function useUploadService() {
     })
   }
 
-  return { uploadMissionImage, uploadAvatar, uploadBrandImage }
+  /**
+   * Delete a mission image from storage
+   */
+  async function deleteMissionImage(url: string): Promise<{ success: boolean }> {
+    return apiFetch<{ success: boolean }>('/upload/mission-image', {
+      method: 'DELETE',
+      body: JSON.stringify({ url }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  return { uploadMissionImage, uploadAvatar, uploadBrandImage, deleteMissionImage }
 }
